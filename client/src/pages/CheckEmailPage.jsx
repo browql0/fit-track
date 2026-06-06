@@ -7,7 +7,7 @@ import './Auth.css';
 export const CheckEmailPage = () => {
   const location = useLocation();
   const [email, setEmail] = useState(location.state?.email || '');
-  const [message, setMessage] = useState('Un email de confirmation a été envoyé.');
+  const [message, setMessage] = useState('Un email de verification a ete envoye.');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -19,9 +19,9 @@ export const CheckEmailPage = () => {
 
     try {
       const result = await authService.resendVerification(email);
-      setMessage(result.message || 'Si un compte non confirmé existe, un email de confirmation sera envoyé.');
+      setMessage(result.message || 'Si un compte non confirme existe, un email de verification sera envoye.');
     } catch (err) {
-      setError(err.response?.data?.error || 'Impossible de renvoyer l\'email pour le moment.');
+      setError(err.response?.data?.error || 'Impossible de renvoyer l email pour le moment.');
     } finally {
       setLoading(false);
     }
@@ -29,7 +29,6 @@ export const CheckEmailPage = () => {
 
   return (
     <div className="auth-page">
-      {/* Background scene */}
       <div className="auth-bg-scene">
         <div
           className="auth-bg-image"
@@ -44,10 +43,8 @@ export const CheckEmailPage = () => {
         <div className="auth-deco-line auth-deco-line--top" />
       </div>
 
-      {/* Content */}
       <div className="auth-content">
         <div className="auth-card">
-          {/* Brand */}
           <div className="auth-brand">
             <div className="auth-icon-hero">
               <div className="auth-icon-circle">
@@ -58,17 +55,15 @@ export const CheckEmailPage = () => {
               <span className="dot" />
               Confirmation email
             </span>
-            <h1 className="auth-title">Vérifie ta boîte mail</h1>
+            <h1 className="auth-title">Verifie ta boite mail</h1>
             <p className="auth-subtitle">
-              Un email de confirmation a été envoyé. Clique sur le lien pour activer ton compte et démarrer ton parcours.
+              Un email de confirmation a ete envoye. Clique sur le lien pour activer ton compte et demarrer ton parcours.
             </p>
           </div>
 
-          {/* Alerts */}
           {message && <div className="auth-success">{message}</div>}
           {error && <div className="auth-error">{error}</div>}
 
-          {/* Form */}
           <form onSubmit={handleResend} className="auth-form" style={{ marginTop: 16 }}>
             <div className="auth-input-group">
               <label className="auth-input-label" htmlFor="check-email">Email</label>
@@ -99,14 +94,12 @@ export const CheckEmailPage = () => {
             </button>
           </form>
 
-          {/* Footer */}
           <div className="auth-footer">
-            Email confirmé ?{' '}
+            Email confirme ?{' '}
             <Link to="/login">Se connecter</Link>
           </div>
         </div>
 
-        {/* Badge */}
         <div className="auth-badge">
           <Flame size={14} />
           Lien valable 24h

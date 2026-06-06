@@ -8,6 +8,9 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const requiredVars = [
   'DATABASE_URL',
   'JWT_SECRET',
+  'RESEND_API_KEY',
+  'EMAIL_FROM',
+  'CLIENT_URL',
 ];
 
 // Validation
@@ -31,15 +34,12 @@ const env = {
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
 
-  // CORS
-  CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173',
+  // CORS + liens transactionnels
+  CLIENT_URL: process.env.CLIENT_URL,
 
-  // Email
-  EMAIL_FROM: process.env.EMAIL_FROM || 'FitTrack <no-reply@fittrack.local>',
-  SMTP_HOST: process.env.SMTP_HOST,
-  SMTP_PORT: parseInt(process.env.SMTP_PORT, 10) || 587,
-  SMTP_USER: process.env.SMTP_USER,
-  SMTP_PASS: process.env.SMTP_PASS,
+  // Email transactionnel
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  EMAIL_FROM: process.env.EMAIL_FROM,
 
   // Helpers
   isDev: process.env.NODE_ENV === 'development',

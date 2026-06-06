@@ -7,12 +7,14 @@ const { recordActivity } = require('./activityService');
 const { sendVerificationEmail } = require('./emailService');
 
 const SALT_ROUNDS = 12;
+const VERIFICATION_TOKEN_BYTES = 32;
 const VERIFICATION_TTL_HOURS = 24;
 const RESEND_COOLDOWN_MINUTES = 5;
 
-function createError(message, statusCode) {
+function createError(message, statusCode, errorCode) {
   const error = new Error(message);
   error.statusCode = statusCode;
+  if (errorCode) error.errorCode = errorCode;
   return error;
 }
 
@@ -25,28 +27,38 @@ function hashVerificationToken(token) {
 }
 
 function createVerificationToken() {
-  const rawToken = crypto.randomBytes(32).toString('hex');
+  const rawToken = crypto.randomBytes(VERIFICATION_TOKEN_BYTES).toString('hex');
+
   return {
     rawToken,
-    hashedToken: hashVerificationToken(rawToken),
-    expires: new Date(Date.now() + VERIFICATION_TTL_HOURS * 60 * 60 * 1000),
+    tokenHash: hashVerificationToken(rawToken),
+    expiresAt: new Date(Date.now() + VERIFICATION_TTL_HOURS * 60 * 60 * 1000),
   };
 }
 
-async function issueVerificationEmail(user) {
+async function createAndSendVerificationToken(user) {
   const verification = createVerificationToken();
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      emailVerificationToken: verification.hashedToken,
-      emailVerificationExpires: verification.expires,
-    },
-  });
+  await prisma.$transaction([
+    prisma.emailVerificationToken.deleteMany({
+      where: {
+        userId: user.id,
+        usedAt: null,
+      },
+    }),
+    prisma.emailVerificationToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: verification.tokenHash,
+        expiresAt: verification.expiresAt,
+      },
+    }),
+  ]);
 
   await sendVerificationEmail({
     to: user.email,
     token: verification.rawToken,
+    displayName: user.profile?.name,
   });
 }
 
@@ -57,7 +69,7 @@ async function register(email, password) {
   });
 
   if (existing) {
-    throw createError('Cet email est deja utilise', 409);
+    throw createError('Cet email est deja utilise', 409, 'EMAIL_ALREADY_USED');
   }
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
@@ -73,13 +85,17 @@ async function register(email, password) {
       emailVerified: true,
       role: true,
       createdAt: true,
+      profile: {
+        select: { name: true },
+      },
     },
   });
 
-  await issueVerificationEmail(user);
+  await createAndSendVerificationToken(user);
   await recordActivity(user.id, 'register');
 
-  return { user };
+  const { profile, ...publicUser } = user;
+  return { user: publicUser };
 }
 
 async function login(email, password) {
@@ -92,22 +108,30 @@ async function login(email, password) {
   });
 
   if (!user) {
-    throw createError('Email ou mot de passe incorrect', 401);
+    throw createError('Email ou mot de passe incorrect', 401, 'INVALID_CREDENTIALS');
   }
 
   const isValid = await bcrypt.compare(password, user.passwordHash);
   if (!isValid) {
-    throw createError('Email ou mot de passe incorrect', 401);
+    throw createError('Email ou mot de passe incorrect', 401, 'INVALID_CREDENTIALS');
   }
 
   if (!user.emailVerified) {
-    throw createError('Veuillez confirmer votre email avant de vous connecter.', 403);
+    throw createError(
+      'Votre email doit etre verifie avant de vous connecter. Consultez votre boite mail ou demandez un nouveau lien.',
+      403,
+      'EMAIL_NOT_VERIFIED'
+    );
   }
 
   const token = generateToken(user);
   await recordActivity(user.id, 'login');
 
-  const { passwordHash, emailVerificationToken, emailVerificationExpires, ...userWithoutPrivateFields } = user;
+  const {
+    passwordHash,
+    ...userWithoutPrivateFields
+  } = user;
+
   return { user: userWithoutPrivateFields, token };
 }
 
@@ -125,7 +149,7 @@ async function getMe(userId) {
   });
 
   if (!user) {
-    throw createError('Utilisateur non trouve', 404);
+    throw createError('Utilisateur non trouve', 404, 'USER_NOT_FOUND');
   }
 
   return user;
@@ -134,55 +158,84 @@ async function getMe(userId) {
 async function verifyEmail(token) {
   const rawToken = String(token || '').trim();
   if (!rawToken) {
-    throw createError('Lien de verification invalide ou expire', 400);
+    throw createError('Lien de verification invalide ou expire', 400, 'INVALID_VERIFICATION_TOKEN');
   }
 
-  const user = await prisma.user.findFirst({
-    where: {
-      emailVerificationToken: hashVerificationToken(rawToken),
-      emailVerificationExpires: {
-        gt: new Date(),
+  const tokenHash = hashVerificationToken(rawToken);
+  const verification = await prisma.emailVerificationToken.findUnique({
+    where: { tokenHash },
+    include: {
+      user: {
+        select: {
+          id: true,
+          emailVerified: true,
+        },
       },
     },
   });
 
-  if (!user) {
-    throw createError('Lien de verification invalide ou expire', 400);
+  if (!verification || verification.usedAt || verification.expiresAt <= new Date()) {
+    throw createError('Lien de verification invalide ou expire', 400, 'INVALID_VERIFICATION_TOKEN');
   }
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      emailVerified: true,
-      emailVerificationToken: null,
-      emailVerificationExpires: null,
-    },
-  });
+  await prisma.$transaction([
+    prisma.emailVerificationToken.update({
+      where: { id: verification.id },
+      data: { usedAt: new Date() },
+    }),
+    prisma.emailVerificationToken.deleteMany({
+      where: {
+        userId: verification.userId,
+        id: { not: verification.id },
+        usedAt: null,
+      },
+    }),
+    prisma.user.update({
+      where: { id: verification.userId },
+      data: {
+        emailVerified: true,
+      },
+    }),
+  ]);
 
-  await recordActivity(user.id, 'email_verified');
-  return { message: 'Email confirme avec succes' };
+  if (!verification.user.emailVerified) {
+    await recordActivity(verification.userId, 'email_verified');
+  }
+
+  return { message: 'Email confirme avec succes. Vous pouvez maintenant vous connecter.' };
 }
 
 async function resendVerification(email) {
   const normalizedEmail = normalizeEmail(email);
   const response = {
-    message: 'Si un compte non confirme existe, un email de confirmation sera envoye.',
+    message: 'Si un compte non confirme existe, un nouvel email de verification sera envoye.',
   };
 
   if (!normalizedEmail) return response;
 
   const user = await prisma.user.findUnique({
     where: { email: normalizedEmail },
+    include: {
+      profile: {
+        select: { name: true },
+      },
+      emailVerificationTokens: {
+        where: { usedAt: null },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+      },
+    },
   });
 
   if (!user || user.emailVerified) return response;
 
-  const cooldownThreshold = new Date(Date.now() + (VERIFICATION_TTL_HOURS * 60 - RESEND_COOLDOWN_MINUTES) * 60 * 1000);
-  if (user.emailVerificationExpires && user.emailVerificationExpires > cooldownThreshold) {
+  const latestToken = user.emailVerificationTokens[0];
+  const cooldownDate = new Date(Date.now() - RESEND_COOLDOWN_MINUTES * 60 * 1000);
+  if (latestToken && latestToken.createdAt > cooldownDate) {
     return response;
   }
 
-  await issueVerificationEmail(user);
+  await createAndSendVerificationToken(user);
   return response;
 }
 

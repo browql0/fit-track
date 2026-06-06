@@ -7,7 +7,7 @@ import './Auth.css';
 export const VerifyEmailPage = () => {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState('loading');
-  const [message, setMessage] = useState('Vérification en cours...');
+  const [message, setMessage] = useState('Verification en cours...');
 
   useEffect(() => {
     let cancelled = false;
@@ -16,7 +16,7 @@ export const VerifyEmailPage = () => {
     const verify = async () => {
       if (!token) {
         setStatus('error');
-        setMessage('Lien de vérification invalide ou expiré.');
+        setMessage('Lien de verification invalide ou expire.');
         return;
       }
 
@@ -24,12 +24,12 @@ export const VerifyEmailPage = () => {
         const result = await authService.verifyEmail(token);
         if (!cancelled) {
           setStatus('success');
-          setMessage(result.message || 'Email confirmé avec succès.');
+          setMessage(result.message || 'Email confirme avec succes.');
         }
       } catch (err) {
         if (!cancelled) {
           setStatus('error');
-          setMessage(err.response?.data?.error || 'Lien de vérification invalide ou expiré.');
+          setMessage(err.response?.data?.error || 'Lien de verification invalide ou expire.');
         }
       }
     };
@@ -47,14 +47,13 @@ export const VerifyEmailPage = () => {
   };
 
   const getTitle = () => {
-    if (status === 'loading') return 'Vérification...';
-    if (status === 'success') return 'Email confirmé';
+    if (status === 'loading') return 'Verification...';
+    if (status === 'success') return 'Email confirme';
     return 'Lien invalide';
   };
 
   return (
     <div className="auth-page">
-      {/* Background scene */}
       <div className="auth-bg-scene">
         <div
           className="auth-bg-image"
@@ -69,10 +68,8 @@ export const VerifyEmailPage = () => {
         <div className="auth-deco-line auth-deco-line--top" />
       </div>
 
-      {/* Content */}
       <div className="auth-content">
         <div className="auth-card">
-          {/* Brand */}
           <div className="auth-brand">
             <div className="auth-icon-hero">
               <div className="auth-icon-circle" style={
@@ -92,13 +89,12 @@ export const VerifyEmailPage = () => {
             </div>
             <span className="auth-eyebrow">
               <span className="dot" />
-              Vérification email
+              Verification email
             </span>
             <h1 className="auth-title">{getTitle()}</h1>
             <p className="auth-subtitle">{message}</p>
           </div>
 
-          {/* Actions */}
           {status === 'success' && (
             <Link to="/login" className="auth-btn" style={{ textDecoration: 'none', marginTop: 8 }}>
               Se connecter
@@ -114,10 +110,9 @@ export const VerifyEmailPage = () => {
           )}
         </div>
 
-        {/* Badge */}
         <div className="auth-badge">
           <Flame size={14} />
-          Expérience Sport Premium
+          Experience Sport Premium
         </div>
       </div>
     </div>

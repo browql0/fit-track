@@ -1,5 +1,5 @@
 const express = require('express');
-const { body } = require('express-validator');
+const { body, query } = require('express-validator');
 const validate = require('../middleware/validate');
 const { auth } = require('../middleware/auth');
 const authController = require('../controllers/authController');
@@ -36,7 +36,16 @@ router.post(
   authController.login
 );
 
-router.get('/verify-email', authController.verifyEmail);
+router.get(
+  '/verify-email',
+  [
+    query('token')
+      .isLength({ min: 64, max: 128 })
+      .withMessage('Token de verification invalide'),
+  ],
+  validate,
+  authController.verifyEmail
+);
 
 router.post(
   '/resend-verification',

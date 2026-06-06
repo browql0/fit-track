@@ -39,6 +39,7 @@ const errorHandler = (err, req, res, _next) => {
     error: statusCode === 500 && !env.isDev
       ? 'Erreur interne du serveur'
       : err.message || 'Erreur interne du serveur',
+    ...(err.errorCode && { code: err.errorCode }),
     ...(env.isDev && { stack: err.stack }),
   };
 
