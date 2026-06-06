@@ -1,0 +1,49 @@
+.progress-ring-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate3d(0, 0, 0);
+  animation: fadeScalePremium 420ms var(--ease-premium) both;
+}
+
+.progress-ring-svg {
+  transform: rotate(-90deg);
+  filter: drop-shadow(0 12px 28px rgba(124, 92, 255, 0.28));
+  will-change: transform;
+}
+
+.progress-ring-circle {
+  transition: stroke-dashoffset 1.05s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: stroke-dashoffset;
+}
+
+.progress-ring-track {
+  opacity: 0.58;
+}
+
+.progress-ring-content {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  animation: scorePop 520ms var(--ease-press) 120ms both;
+}
+
+.progress-ring-label {
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+.progress-ring-sublabel {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}

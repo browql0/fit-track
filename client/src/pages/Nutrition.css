@@ -1,0 +1,826 @@
+/* ============================================
+   Nutrition / Food Page – Elite Athlete Edition
+   Deep Space + Cyan + Spring Green
+   ============================================ */
+
+.nutri-shell {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-bottom: 100px;
+}
+
+.nutri-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.nutri-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* --- Header --- */
+.nutri-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  animation: nutriFadeDown 500ms cubic-bezier(.22,.68,0,1.1) both;
+}
+
+.nutri-header-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.nutri-eyebrow {
+  color: #22d3ee;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.nutri-title {
+  margin: 2px 0 0;
+  font-size: 1.75rem;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: #fff;
+}
+
+.nutri-btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  color: #060a10;
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #22d3ee, #10b981);
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(34, 211, 238, 0.25);
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.nutri-btn-add:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(34, 211, 238, 0.35);
+}
+
+.nutri-btn-add:active {
+  transform: scale(0.96);
+}
+
+/* --- Hero Summary Card --- */
+.nutri-hero-card {
+  position: relative;
+  padding: 32px 28px;
+  border-radius: 32px;
+  overflow: hidden;
+  background: linear-gradient(160deg, rgba(13,17,30,0.8) 0%, rgba(5,8,22,0.95) 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.04) inset,
+    0 30px 60px -10px rgba(0,229,255,0.1);
+}
+
+/* Simulated mesh background like dashboard */
+.nutri-hero-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 80% 0%, rgba(34, 211, 238, 0.08), transparent),
+    radial-gradient(ellipse 50% 60% at 20% 100%, rgba(16, 185, 129, 0.06), transparent);
+  pointer-events: none;
+}
+
+.nutri-hero-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 70%);
+  pointer-events: none;
+}
+
+.nutri-hero-top {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.nutri-hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nutri-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 6px 12px;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.nutri-calories-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.nutri-cals-val {
+  margin: 0;
+  font-size: 3.2rem;
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #fff, rgba(255,255,255,0.75));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.nutri-cals-left {
+  margin-top: 6px;
+  color: var(--aqua);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Date picker inside hero */
+.nutri-date-picker-wrap {
+  position: relative;
+  z-index: 10;
+}
+.nutri-date-picker-wrap .custom-datepicker-trigger {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 10px 14px;
+}
+
+/* --- Macro Section --- */
+.nutri-macro-section {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.nutri-macro-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nutri-macro-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nutri-macro-label {
+  color: rgba(255,255,255,0.6);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.nutri-macro-val {
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.nutri-macro-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.nutri-macro-fill {
+  height: 100%;
+  border-radius: 999px;
+  animation: nutriGrow 1s cubic-bezier(.22,.68,0,1.1) both;
+  transform-origin: left;
+}
+
+.nutri-macro-fill.aqua { background: #22d3ee; box-shadow: 0 0 10px rgba(34, 211, 238, 0.4); }
+.nutri-macro-fill.violet { background: #a78bfa; box-shadow: 0 0 10px rgba(167, 139, 250, 0.4); }
+.nutri-macro-fill.coral { background: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); } /* Actually Gold/Amber */
+
+/* --- Hydration Card --- */
+.nutri-hydration-card {
+  padding: 24px;
+  background: rgba(0, 229, 255, 0.05);
+  border: 1px solid rgba(0, 229, 255, 0.1);
+  border-radius: 28px;
+}
+
+.nutri-hydro-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.nutri-hydro-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.nutri-hydro-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #060a10;
+  background: linear-gradient(135deg, #22d3ee, #62e3ff);
+  box-shadow: 0 4px 14px rgba(34, 211, 238, 0.2);
+}
+
+.nutri-hydro-title h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 950;
+}
+
+.nutri-hydro-title span {
+  color: #22d3ee;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.nutri-hydro-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  color: #fff;
+  background: rgba(34, 211, 238, 0.15);
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  border-radius: 14px;
+  font-size: 0.85rem;
+  font-weight: 850;
+  cursor: pointer;
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.nutri-hydro-add:hover {
+  background: rgba(34, 211, 238, 0.25);
+  transform: translateY(-2px);
+}
+
+.nutri-hydro-add:active {
+  transform: scale(0.96);
+}
+
+.nutri-hydro-add:disabled {
+  opacity: 0.5;
+  cursor: wait;
+  transform: none;
+}
+
+/* --- Timeline Layout --- */
+.nutri-timeline {
+  display: flex;
+  flex-direction: column;
+  padding-left: 16px;
+  margin-top: 16px;
+}
+
+.nutri-timeline-node {
+  position: relative;
+  padding-left: 32px;
+  padding-bottom: 32px;
+}
+
+.nutri-timeline-node:last-child {
+  padding-bottom: 0;
+}
+
+.nutri-timeline-dot {
+  position: absolute;
+  left: 0;
+  top: 24px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  box-shadow: 0 0 10px currentColor;
+}
+.nutri-timeline-dot.lime { background: var(--lime); color: var(--lime); }
+.nutri-timeline-dot.aqua { background: var(--aqua); color: var(--aqua); }
+.nutri-timeline-dot.violet { background: var(--violet); color: var(--violet); }
+.nutri-timeline-dot.coral { background: var(--warning); color: var(--warning); }
+
+.nutri-timeline-line {
+  position: absolute;
+  left: 0;
+  top: 38px;
+  bottom: -24px;
+  width: 2px;
+  background: var(--border-strong);
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.nutri-timeline-node:last-child .nutri-timeline-line {
+  display: none;
+}
+
+.nutri-meal-card {
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 24px;
+  transition: transform 200ms ease, background 200ms ease, border-color 200ms ease;
+}
+
+.nutri-meal-card:hover {
+  background: rgba(255,255,255,0.035);
+  border-color: rgba(255,255,255,0.08);
+  transform: translateY(-2px);
+}
+
+.nutri-meal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.nutri-meal-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.nutri-meal-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  color: #050816;
+}
+
+.nutri-meal-icon.lime { background: linear-gradient(135deg, var(--lime), #6ee7b7); box-shadow: 0 4px 14px rgba(0, 255, 163, 0.2); }
+.nutri-meal-icon.aqua { background: linear-gradient(135deg, var(--aqua), #a5f3fc); box-shadow: 0 4px 14px rgba(0, 229, 255, 0.2); }
+.nutri-meal-icon.violet { background: linear-gradient(135deg, var(--violet), #ddd6fe); box-shadow: 0 4px 14px rgba(138, 43, 226, 0.2); }
+.nutri-meal-icon.coral { background: linear-gradient(135deg, var(--warning), #fde68a); box-shadow: 0 4px 14px rgba(255, 184, 77, 0.2); }
+
+.nutri-meal-name {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 950;
+  color: #fff;
+}
+
+.nutri-meal-cals {
+  color: rgba(255,255,255,0.4);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.nutri-meal-add {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  color: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.nutri-meal-add:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.1);
+  transform: translateY(-2px);
+}
+
+.nutri-meal-add:active {
+  transform: scale(0.95);
+}
+
+.nutri-meal-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: rgba(255,255,255,0.3);
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: rgba(255,255,255,0.02);
+  border: 1px dashed rgba(255,255,255,0.08);
+  border-radius: 16px;
+}
+
+.nutri-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nutri-entry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.03);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.nutri-entry-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nutri-entry-details strong {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.nutri-entry-details small {
+  color: rgba(255,255,255,0.4);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.nutri-entry-del {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: rgba(255,255,255,0.25);
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 180ms, color 180ms;
+}
+
+.nutri-entry-del:hover {
+  color: #f43f5e;
+  background: rgba(244, 63, 94, 0.1);
+}
+
+/* --- Modal Search --- */
+.nutri-modal-search {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nutri-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.nutri-search-icon {
+  position: absolute;
+  left: 16px;
+  color: rgba(255,255,255,0.4);
+}
+
+.nutri-search-input {
+  width: 100%;
+  height: 56px;
+  padding: 0 16px 0 48px;
+  color: #fff;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  outline: none;
+  transition: all 200ms ease;
+}
+
+.nutri-search-input:focus {
+  border-color: #22d3ee;
+  background: rgba(255,255,255,0.06);
+  box-shadow: 0 0 0 1px #22d3ee, 0 4px 16px rgba(34, 211, 238, 0.15);
+}
+
+.nutri-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.nutri-search-results::-webkit-scrollbar { width: 4px; }
+.nutri-search-results::-webkit-scrollbar-track { background: transparent; }
+.nutri-search-results::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+.nutri-search-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 14px 16px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: transform 150ms, background 150ms, border-color 150ms;
+}
+
+.nutri-search-item:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255,255,255,0.08);
+}
+
+.nutri-search-item:active {
+  transform: scale(0.98);
+}
+
+.nutri-search-item-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #060a10;
+  background: linear-gradient(135deg, #10b981, #6ee7b7);
+}
+
+.nutri-search-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.nutri-search-item-info strong {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 850;
+}
+
+.nutri-search-item-info small {
+  color: rgba(255,255,255,0.4);
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.nutri-search-item-arrow {
+  color: rgba(255,255,255,0.2);
+}
+
+/* --- Modal Form --- */
+.nutri-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.nutri-food-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.15);
+  border-radius: 20px;
+}
+
+.nutri-food-card-icon {
+  color: #22d3ee;
+}
+
+.nutri-food-card-content strong {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 950;
+  color: #fff;
+}
+
+.nutri-food-card-content p {
+  margin: 4px 0 0;
+  color: #22d3ee;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.nutri-btn-submit {
+  width: 100%;
+  padding: 16px;
+  font-size: 1rem;
+  font-weight: 950;
+  color: #060a10;
+  background: linear-gradient(135deg, #22d3ee, #10b981);
+  border: none;
+  border-radius: 18px;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(34, 211, 238, 0.2);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.nutri-btn-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(34, 211, 238, 0.3);
+}
+
+.nutri-btn-submit:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.nutri-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+/* --- Assisted Food Creation --- */
+.nutri-assist-panel,
+.nutri-assist-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 20px;
+}
+
+.nutri-assist-panel strong,
+.nutri-assist-label {
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.nutri-assist-panel small {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255,255,255,0.4);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.nutri-assist-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.nutri-assist-btn {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  color: #fff;
+  text-align: left;
+  font-weight: 850;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.nutri-assist-btn:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.nutri-assist-btn:active {
+  transform: scale(0.98);
+}
+
+.nutri-assist-label {
+  color: #22d3ee;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.nutri-estimate-note {
+  padding: 12px 14px;
+  color: #060a10;
+  background: linear-gradient(135deg, #22d3ee, #10b981);
+  border-radius: 16px;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.nutri-draft-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.nutri-select {
+  width: 100%;
+  min-height: 52px;
+  color: #fff;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 0 16px;
+  font-weight: 600;
+  outline: none;
+}
+.nutri-select option {
+  background: #0c1017;
+  color: #fff;
+}
+
+/* --- Assist Badge --- */
+.nutri-assist-badge {
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: 0.65rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(34, 211, 238, 0.8);
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.15);
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* --- External search icon variant --- */
+.nutri-search-item-icon.external {
+  color: #050816;
+  background: linear-gradient(135deg, var(--aqua), #a5f3fc);
+}
+
+/* --- Animations (Kept only for non-Framer motion) --- */
+@keyframes nutriFadeDown {
+  from { opacity: 0; transform: translateY(-14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 400px) {
+  .nutri-cals-val { font-size: 2.6rem; }
+  .nutri-hero-card { padding: 22px 18px; }
+  .nutri-meal-card { padding: 16px; }
+  .nutri-meal-icon { width: 42px; height: 42px; }
+  .nutri-meal-add { width: 38px; height: 38px; }
+  .nutri-timeline { padding-left: 8px; }
+  .nutri-timeline-node { padding-left: 20px; }
+}
+
+@media (min-width: 900px) {
+  .nutri-layout {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    align-items: start;
+    gap: 32px;
+  }
+}

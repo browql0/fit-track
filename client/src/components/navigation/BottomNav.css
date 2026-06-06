@@ -1,0 +1,361 @@
+/* ═══════════════════════════════════════════════════════════
+   APEX BOTTOM NAV — Luxury Sport Mobile Navigation
+   ═══════════════════════════════════════════════════════════ */
+
+/* ══ Keyframes ══════════════════════════════════════════════ */
+
+@keyframes apex-rise {
+  from { opacity: 0; transform: translate(-50%, 150%); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes apex-item-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.88); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes apex-beam-in {
+  0%   { height: 0;    opacity: 0; }
+  40%  { height: 28px; opacity: 1; }
+  100% { height: 22px; opacity: 0.7; }
+}
+
+@keyframes apex-halo-in {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+@keyframes apex-cta-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 rgba(0, 229, 255, 0),
+      0 0 30px 6px rgba(0, 229, 255, 0.18),
+      0 0 60px 14px rgba(71, 214, 255, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 8px rgba(0, 229, 255, 0.06),
+      0 0 40px 10px rgba(0, 229, 255, 0.28),
+      0 0 70px 20px rgba(71, 214, 255, 0.14);
+  }
+}
+
+@keyframes apex-cta-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* (scan animation removed) */
+
+/* ══ Shell ══════════════════════════════════════════════════ */
+.apex-nav {
+  position: fixed;
+  bottom: max(16px, env(safe-area-inset-bottom, 16px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 400px;
+  z-index: 200;
+
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
+
+  padding: 8px 8px;
+  border-radius: 32px;
+
+  /* True dark glass — edge to edge */
+  background: linear-gradient(160deg, rgba(13,17,30,0.85) 0%, rgba(5,8,22,0.98) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255,255,255,0.05);
+  overflow: visible;
+
+  animation: apex-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* No show on desktop */
+@media (min-width: 900px) {
+  .apex-nav { display: none; }
+}
+
+/* ══ Regular Nav Item ═══════════════════════════════════════ */
+.apex-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  padding: 8px 4px 0;
+  min-height: 56px;
+
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+
+  color: rgba(200, 213, 232, 0.35);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  animation: apex-item-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(0.06s + var(--idx, 0) * 0.06s);
+
+  transition: color 250ms ease;
+}
+
+.apex-item.active {
+  color: #fff;
+}
+
+.apex-beam {
+  position: absolute;
+  bottom: calc(100% - 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 0;
+  border-radius: 99px;
+  background: linear-gradient(0deg, rgba(0,229,255,0), rgba(0,229,255,0.9) 50%, rgba(0,229,255,0.6));
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
+
+.apex-item.active .apex-beam {
+  animation: apex-beam-in 400ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  height: 22px;
+  opacity: 0.7;
+}
+
+/* ══ Icon Wrap ══════════════════════════════════════════════ */
+.apex-icon-wrap {
+  position: relative;
+  width: 44px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  transition:
+    background 250ms ease,
+    transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.apex-item.active .apex-icon-wrap {
+  background: linear-gradient(
+    145deg,
+    rgba(0, 229, 255, 0.16) 0%,
+    rgba(0, 229, 255, 0.06) 100%
+  );
+  transform: translateY(-6px);
+}
+
+/* ══ Icon ═══════════════════════════════════════════════════ */
+.apex-icon {
+  transition:
+    filter 250ms ease,
+    color 250ms ease,
+    transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: inherit;
+}
+
+.apex-item.active .apex-icon {
+  color: var(--aqua);
+  filter:
+    drop-shadow(0 0 6px rgba(0, 229, 255, 0.6))
+    drop-shadow(0 0 14px rgba(0, 229, 255, 0.25));
+}
+
+/* ══ Halo ring (active only) ════════════════════════════════ */
+.apex-halo {
+  position: absolute;
+  inset: -5px;
+  border-radius: 18px;
+  border: 1.5px solid rgba(0, 229, 255, 0.28);
+  box-shadow:
+    inset 0 0 12px rgba(0, 229, 255, 0.08),
+    0 0 14px rgba(0, 229, 255, 0.12);
+  pointer-events: none;
+  animation: apex-halo-in 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ══ Label ══════════════════════════════════════════════════ */
+.apex-label {
+  display: block;
+  line-height: 1;
+  transition:
+    opacity 250ms ease,
+    transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    color 250ms ease;
+
+  /* Inactive: very subtle */
+  opacity: 0.6;
+  transform: translateY(0);
+}
+
+.apex-item.active .apex-label {
+  opacity: 1;
+  color: var(--aqua);
+  transform: translateY(-6px); /* follows icon lift */
+}
+
+/* ══ Hover (non-touch) ══════════════════════════════════════ */
+@media (hover: hover) {
+  .apex-item:not(.active):hover {
+    color: rgba(200, 213, 232, 0.65);
+  }
+
+  .apex-item:not(.active):hover .apex-icon-wrap {
+    background: rgba(255,255,255,0.04);
+    transform: translateY(-3px);
+  }
+}
+
+.apex-item:active .apex-icon-wrap {
+  transform: scale(0.9) translateY(-3px);
+}
+
+/* ══ Center CTA Button ══════════════════════════════════════ */
+.apex-cta {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  padding-bottom: 0;
+  margin-bottom: 0;
+
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+
+  color: rgba(200, 213, 232, 0.5);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  animation: apex-item-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+}
+
+/* Outer spinning dashed ring */
+.apex-cta-outer {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+
+  /* lifts button above the bar */
+  margin-top: -24px;
+
+  border-radius: 50%;
+  border: 1.5px dashed rgba(0, 229, 255, 0.3);
+  animation: apex-cta-spin 12s linear infinite;
+}
+
+/* Inner solid button */
+.apex-cta-inner {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+
+  background: linear-gradient(135deg, var(--lime) 0%, var(--aqua) 100%);
+  color: #050816;
+
+  box-shadow:
+    0 0 0 3px rgba(13, 17, 30, 0.9),
+    0 0 30px 6px rgba(0, 255, 163, 0.18),
+    0 0 60px 14px rgba(0, 229, 255, 0.1);
+  animation: apex-cta-pulse 3s ease-in-out infinite;
+
+  transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 280ms ease;
+}
+
+.apex-cta-label {
+  display: block;
+  color: rgba(200, 213, 232, 0.45);
+  transition: color 250ms ease;
+}
+
+@media (hover: hover) {
+  .apex-cta:hover .apex-cta-inner {
+    transform: scale(1.1) translateY(-3px);
+  }
+  .apex-cta:hover .apex-cta-label {
+    color: rgba(200, 213, 232, 0.75);
+  }
+}
+
+.apex-cta:active .apex-cta-inner {
+  transform: scale(0.92);
+}
+
+/* ══ Light Theme ════════════════════════════════════════════ */
+:root[data-theme='light'] .apex-nav {
+  background:
+    linear-gradient(180deg, rgba(240,245,248,0) 0%, rgba(240,245,248,0.98) 22%);
+  border-top-color: rgba(183,255,86,0.2);
+}
+
+:root[data-theme='light'] .apex-item {
+  color: rgba(60, 80, 60, 0.38);
+}
+
+:root[data-theme='light'] .apex-item.active {
+  color: var(--ink);
+}
+
+:root[data-theme='light'] .apex-item.active .apex-icon-wrap {
+  background: linear-gradient(
+    145deg,
+    rgba(183, 255, 86, 0.22) 0%,
+    rgba(71, 214, 255, 0.1) 100%
+  );
+}
+
+:root[data-theme='light'] .apex-item.active .apex-icon {
+  color: rgba(60, 130, 20, 0.95);
+  filter: drop-shadow(0 0 5px rgba(120, 210, 40, 0.35));
+}
+
+:root[data-theme='light'] .apex-item.active .apex-label {
+  color: rgba(60, 130, 20, 0.9);
+}
+
+:root[data-theme='light'] .apex-halo {
+  border-color: rgba(100, 180, 40, 0.3);
+  box-shadow:
+    inset 0 0 10px rgba(100, 180, 40, 0.06),
+    0 0 12px rgba(100, 180, 40, 0.1);
+}
+
+:root[data-theme='light'] .apex-cta-outer {
+  border-color: rgba(100, 180, 40, 0.35);
+}
+
+:root[data-theme='light'] .apex-cta-inner {
+  box-shadow:
+    0 0 0 3px rgba(240, 245, 248, 0.95),
+    0 0 28px 6px rgba(183, 255, 86, 0.2),
+    0 0 50px 12px rgba(71, 214, 255, 0.1);
+}
+
+:root[data-theme='light'] .apex-cta-label {
+  color: rgba(60, 80, 60, 0.45);
+}

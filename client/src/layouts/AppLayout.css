@@ -1,0 +1,48 @@
+/* ═══════════════════════════════════════════════
+   AppLayout – Shell with sidebar + content
+   ═══════════════════════════════════════════════ */
+
+.app-layout {
+  min-height: 100vh;
+  width: 100%;
+}
+
+.app-content {
+  width: 100%;
+  min-height: 100vh;
+  padding: max(16px, env(safe-area-inset-top, 0px)) 14px calc(112px + env(safe-area-inset-bottom, 0px));
+}
+
+.route-transition {
+  min-width: 0;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+/* ── Tablet breakpoint ──────────────────────── */
+
+@media (min-width: 760px) {
+  .app-content {
+    padding: 26px 22px calc(118px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ── Desktop breakpoint – sidebar layout ────── */
+
+@media (min-width: 900px) {
+  .app-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+  }
+
+  .app-content {
+    min-height: 100vh;
+    padding: 28px 32px 32px;
+    overflow-x: hidden;
+  }
+
+  /* Hide BottomNav on desktop */
+  .app-layout .bottom-nav {
+    display: none;
+  }
+}

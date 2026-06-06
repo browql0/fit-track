@@ -1,0 +1,31 @@
+
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="72" x2="904" y2="952" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#12191A"/>
+      <stop offset="0.52" stop-color="#061111"/>
+      <stop offset="1" stop-color="#03100C"/>
+    </linearGradient>
+    <linearGradient id="pulse" x1="188" y1="575" x2="838" y2="319" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#55F7FF"/>
+      <stop offset="0.48" stop-color="#00E6D4"/>
+      <stop offset="1" stop-color="#9BFF5A"/>
+    </linearGradient>
+    <filter id="glow" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="26" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.1 0 0 0 0 1 0 0 0 0 0.84 0 0 0 0.72 0"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="soft" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="226" fill="url(#bg)"/>
+  <path d="M254 696C352 808 521 841 650 760C773 683 824 530 773 394" fill="none" stroke="#103231" stroke-width="44" stroke-linecap="round" opacity="0.62"/>
+  <path d="M246 338C357 226 534 200 667 286C758 345 812 443 814 548" fill="none" stroke="#12352F" stroke-width="40" stroke-linecap="round" opacity="0.64"/>
+  <path d="M176 546H330L399 377L486 686L570 466L641 466L697 335L804 335" fill="none" stroke="url(#pulse)" stroke-width="78" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+  <path d="M176 546H330L399 377L486 686L570 466L641 466L697 335L804 335" fill="none" stroke="#F4FFF7" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" opacity="0.86"/>
+  <circle cx="807" cy="335" r="46" fill="#98FF5C" opacity="0.18"/>
+  <circle cx="807" cy="335" r="20" fill="#E9FFE0"/>
+  <path d="M455 224L518 224L470 354L546 354L426 552L459 406L391 406Z" fill="#7CFFB2" opacity="0.20" filter="url(#soft)"/>
+</svg>

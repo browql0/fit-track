@@ -1,0 +1,319 @@
+// ══════════════════════════════════════════════════════════════
+// FitTrack — Schéma Prisma Complet (12 modèles)
+// ══════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════
+// ENUM
+// ═══════════════════════════════════════
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// ═══════════════════════════════════════
+// USER — Authentification et identité
+// ═══════════════════════════════════════
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  emailVerified Boolean @default(false) @map("email_verified")
+  emailVerificationToken String? @map("email_verification_token") @db.VarChar(255)
+  emailVerificationExpires DateTime? @map("email_verification_expires")
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  profile          Profile?
+  foodEntries      FoodEntry[]
+  workouts         Workout[]
+  weightEntries    WeightEntry[]
+  bodyMeasurements BodyMeasurement[]
+  goalSnapshots    GoalSnapshot[]
+  hydrationEntries HydrationEntry[]
+  coachSnapshots   CoachSnapshot[]
+  missionCompletions MissionCompletion[]
+  userActivities   UserActivity[]
+  customFoods      Food[]           @relation("FoodCreator")
+  mealTemplates    MealTemplate[]
+  favoriteFoods    FavoriteFood[]
+
+  @@map("users")
+}
+
+// ═══════════════════════════════════════
+// PROFILE — Données physiques et objectif
+// ═══════════════════════════════════════
+
+model Profile {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique @map("user_id")
+  name          String   @db.VarChar(100)
+  age           Int
+  gender        String   @db.VarChar(10) // 'male' | 'female'
+  heightCm      Float    @map("height_cm")
+  weightKg      Float    @map("weight_kg")
+  targetWeightKg Float?  @map("target_weight_kg")
+  activityLevel String   @map("activity_level") @db.VarChar(20)
+  // 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active'
+  goal          String   @db.VarChar(20)
+  // 'fat_loss' | 'weight_loss' | 'maintenance' | 'muscle_gain' | 'bulking'
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+// ═══════════════════════════════════════
+// FOOD — Base d'aliments normalisée
+// Aliments système (seed) + personnalisés (utilisateur)
+// ═══════════════════════════════════════
+
+model Food {
+  id              Int      @id @default(autoincrement())
+  name            String   @db.VarChar(255)
+  caloriesPer100g Float    @map("calories_per_100g")
+  proteinPer100g  Float    @map("protein_per_100g")
+  carbsPer100g    Float    @map("carbs_per_100g")
+  fatPer100g      Float    @map("fat_per_100g")
+  category        String   @db.VarChar(50)
+  // 'protein' | 'carbs' | 'fat' | 'dairy' | 'fruit' | 'vegetable' | 'grain' | 'other'
+  createdBy       Int?     @map("created_by")
+  isPublic        Boolean  @default(false) @map("is_public")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  creator       User?          @relation("FoodCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  foodEntries   FoodEntry[]
+  favoriteFoods FavoriteFood[]
+
+  @@map("foods")
+}
+
+// ═══════════════════════════════════════
+// FOOD ENTRY — Journal alimentaire
+// Stocke uniquement food_id + quantité
+// Macros calculées : (quantityG / 100) × food.*Per100g
+// ═══════════════════════════════════════
+
+model FoodEntry {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  foodId    Int      @map("food_id")
+  quantityG Float    @map("quantity_g")
+  mealType  String   @default("snack") @map("meal_type") @db.VarChar(20)
+  // 'breakfast' | 'lunch' | 'dinner' | 'snack'
+  entryDate DateTime @map("entry_date") @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  food Food @relation(fields: [foodId], references: [id])
+
+  @@index([userId, entryDate])
+  @@map("food_entries")
+}
+
+// ═══════════════════════════════════════
+// EXERCISE — Types de sport avec MET
+// Données de référence, seeded au déploiement
+// ═══════════════════════════════════════
+
+model Exercise {
+  id       Int    @id @default(autoincrement())
+  name     String @unique @db.VarChar(100)
+  metValue Float  @map("met_value")
+
+  workouts Workout[]
+
+  @@map("exercises")
+}
+
+// ═══════════════════════════════════════
+// WORKOUT — Séances d'entraînement
+// Calories calculées dynamiquement :
+// MET × poids_kg × (durée_minutes / 60)
+// ═══════════════════════════════════════
+
+model Workout {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @map("user_id")
+  exerciseId      Int      @map("exercise_id")
+  durationMinutes Int      @map("duration_minutes")
+  notes           String?  @db.Text
+  workoutDate     DateTime @map("workout_date") @db.Date
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@index([userId, workoutDate])
+  @@map("workouts")
+}
+
+// ═══════════════════════════════════════
+// WEIGHT ENTRY — Historique des pesées
+// ═══════════════════════════════════════
+
+model WeightEntry {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  weightKg  Float    @map("weight_kg")
+  entryDate DateTime @map("entry_date") @db.Date
+  notes     String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entryDate]) // Une seule pesée par jour
+  @@index([userId, entryDate])
+  @@map("weight_entries")
+}
+
+// ═══════════════════════════════════════
+// BODY MEASUREMENT — Mensurations corporelles
+// Suivi : taille, poitrine, bras, cuisse, cou
+// ═══════════════════════════════════════
+
+model BodyMeasurement {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @map("user_id")
+  waistCm         Float?   @map("waist_cm")
+  chestCm         Float?   @map("chest_cm")
+  armCm           Float?   @map("arm_cm")
+  thighCm         Float?   @map("thigh_cm")
+  neckCm          Float?   @map("neck_cm")
+  measurementDate DateTime @map("measurement_date") @db.Date
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, measurementDate])
+  @@map("body_measurements")
+}
+
+// ═══════════════════════════════════════
+// GOAL SNAPSHOT — Historique des objectifs
+// Créé à chaque modification du profil
+// Jamais écrasé → historique complet
+// ═══════════════════════════════════════
+
+model GoalSnapshot {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  targetCalories Int      @map("target_calories")
+  targetProtein  Int      @map("target_protein")  // grammes
+  targetCarbs    Int      @map("target_carbs")     // grammes
+  targetFat      Int      @map("target_fat")       // grammes
+  targetWeightKg Float?   @map("target_weight_kg")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("goal_snapshots")
+}
+
+model HydrationEntry {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  amountMl  Int      @map("amount_ml")
+  entryDate DateTime @map("entry_date") @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, entryDate])
+  @@map("hydration_entries")
+}
+
+model CoachSnapshot {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  score       Int
+  nutrition   Int
+  training    Int
+  progression Int
+  consistency Int
+  payload     Json
+  snapshotDate DateTime @map("snapshot_date") @db.Date
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, snapshotDate])
+  @@index([userId, snapshotDate])
+  @@index([userId, updatedAt])
+  @@map("coach_snapshots")
+}
+
+model MissionCompletion {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  missionId   String   @map("mission_id") @db.VarChar(100)
+  missionDate DateTime @map("mission_date") @db.Date
+  xpEarned    Int      @default(0) @map("xp_earned")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, missionId, missionDate])
+  @@index([userId, missionDate])
+  @@map("mission_completions")
+}
+
+model UserActivity {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  activityType String   @map("activity_type") @db.VarChar(50)
+  activityDate DateTime @map("activity_date") @db.Date
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, activityType, activityDate])
+  @@index([userId, activityDate])
+  @@map("user_activities")
+}
+
+// ═══════════════════════════════════════
+// V2 STUBS — Préparation fonctionnalités futures
+// Tables créées mais non implémentées
+// ═══════════════════════════════════════
+
+model MealTemplate {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  name      String   @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("meal_templates")
+}
+
+model FavoriteFood {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  foodId    Int      @map("food_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  food Food @relation(fields: [foodId], references: [id])
+
+  @@unique([userId, foodId])
+  @@map("favorite_foods")
+}

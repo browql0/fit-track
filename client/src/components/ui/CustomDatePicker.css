@@ -1,0 +1,125 @@
+.custom-datepicker-container {
+  position: relative;
+  display: inline-block;
+}
+
+.custom-datepicker-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
+.custom-datepicker-trigger:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary);
+}
+
+.custom-datepicker-popup {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  padding: 16px;
+  animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top right;
+  backdrop-filter: blur(12px);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.datepicker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.datepicker-header strong {
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.datepicker-nav {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.datepicker-nav:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.datepicker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.datepicker-weekdays {
+  margin-bottom: 8px;
+}
+
+.datepicker-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.datepicker-cell.weekday {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.datepicker-cell.day {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.datepicker-cell.day:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.datepicker-cell.day.today {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.datepicker-cell.day.selected {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(109, 93, 253, 0.4);
+}

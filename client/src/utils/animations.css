@@ -1,0 +1,153 @@
+:root {
+  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-snap: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-press: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --motion-fast: 160ms;
+  --motion-medium: 420ms;
+  --motion-page: 620ms;
+}
+
+@keyframes pageEnterPremium {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.985);
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes pageExitPremium {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -8px, 0) scale(0.992);
+  }
+}
+
+@keyframes cardEnterPremium {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes fadeScalePremium {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes shimmerPremium {
+  0% { transform: translate3d(-120%, 0, 0); }
+  100% { transform: translate3d(120%, 0, 0); }
+}
+
+@keyframes progressSweep {
+  from {
+    transform: scaleX(0);
+    opacity: 0.6;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+@keyframes haloPulse {
+  0%, 100% {
+    opacity: 0.38;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    opacity: 0.68;
+    transform: translate3d(0, -2px, 0) scale(1.035);
+  }
+}
+
+@keyframes scorePop {
+  0% { transform: translate3d(0, 6px, 0) scale(0.92); opacity: 0; }
+  70% { transform: translate3d(0, -1px, 0) scale(1.035); opacity: 1; }
+  100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+}
+
+.motion-page-enter {
+  animation: pageEnterPremium var(--motion-page) var(--ease-premium) both;
+  will-change: transform, opacity, filter;
+}
+
+.motion-page-exit {
+  animation: pageExitPremium 180ms var(--ease-snap) both;
+  will-change: transform, opacity;
+}
+
+.motion-card-enter {
+  animation: cardEnterPremium 520ms var(--ease-premium) both;
+  will-change: transform, opacity;
+}
+
+.motion-fade-scale {
+  animation: fadeScalePremium 380ms var(--ease-premium) both;
+  will-change: transform, opacity;
+}
+
+.motion-stagger > * {
+  animation: cardEnterPremium 520ms var(--ease-premium) both;
+  animation-delay: calc(var(--motion-index, 0) * 70ms);
+}
+
+.motion-pressable {
+  transform: translate3d(0, 0, 0);
+  transition:
+    transform var(--motion-fast) var(--ease-snap),
+    box-shadow var(--motion-medium) var(--ease-premium),
+    border-color var(--motion-medium) var(--ease-premium),
+    background var(--motion-medium) var(--ease-premium);
+  will-change: transform;
+}
+
+.motion-pressable:hover {
+  transform: translate3d(0, -2px, 0);
+}
+
+.motion-pressable:active {
+  transform: translate3d(0, 1px, 0) scale(0.975);
+}
+
+.animated-number {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  animation: scorePop 460ms var(--ease-press) both;
+  will-change: transform, opacity;
+}
+
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}
