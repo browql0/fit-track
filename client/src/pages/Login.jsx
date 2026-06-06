@@ -1,7 +1,8 @@
 import { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Flame, Lock, Mail, Eye, EyeOff, Zap, Target, Trophy, ChevronRight } from 'lucide-react';
+import { Flame, Lock, Mail, Eye, EyeOff, Zap, Target, Trophy, ChevronRight, RefreshCcw } from 'lucide-react';
 import { AuthContext } from '../context/authContext';
+import { authService } from '../services/authService';
 import './Auth.css';
 
 export const Login = () => {
@@ -11,19 +12,44 @@ export const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [isEmailNotVerified, setIsEmailNotVerified] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
+    setNotice('');
+    setIsEmailNotVerified(false);
     setLoading(true);
     try {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Echec de la connexion.');
+      const code = err.response?.data?.code;
+      if (code === 'EMAIL_NOT_VERIFIED') {
+        setIsEmailNotVerified(true);
+        setError('Votre email n est pas encore verifie.');
+      } else {
+        setError(err.response?.data?.error || 'Echec de la connexion.');
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setNotice('');
+    setResendLoading(true);
+
+    try {
+      await authService.resendVerification(email);
+      setNotice('Si ce compte existe, un nouveau lien a ete envoye.');
+    } catch {
+      setNotice('Si ce compte existe, un nouveau lien a ete envoye.');
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -65,6 +91,25 @@ export const Login = () => {
 
           {/* Error */}
           {error && <div className="auth-error">{error}</div>}
+          {notice && <div className="auth-success">{notice}</div>}
+          {isEmailNotVerified && (
+            <button
+              className="auth-btn"
+              type="button"
+              onClick={handleResendVerification}
+              disabled={resendLoading || !email}
+              style={{ marginBottom: 16 }}
+            >
+              {resendLoading ? (
+                <span className="spinner" />
+              ) : (
+                <>
+                  <RefreshCcw size={18} />
+                  Renvoyer le lien de verification
+                </>
+              )}
+            </button>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="auth-form">

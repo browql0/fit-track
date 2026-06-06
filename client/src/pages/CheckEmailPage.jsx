@@ -7,7 +7,7 @@ import './Auth.css';
 export const CheckEmailPage = () => {
   const location = useLocation();
   const [email, setEmail] = useState(location.state?.email || '');
-  const [message, setMessage] = useState('Un email de verification a ete envoye.');
+  const [message, setMessage] = useState('Si ce compte existe, un lien de verification a ete envoye.');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -19,9 +19,13 @@ export const CheckEmailPage = () => {
 
     try {
       const result = await authService.resendVerification(email);
-      setMessage(result.message || 'Si un compte non confirme existe, un email de verification sera envoye.');
+      setMessage(result.message || 'Si ce compte existe, un nouveau lien a ete envoye.');
     } catch (err) {
-      setError(err.response?.data?.error || 'Impossible de renvoyer l email pour le moment.');
+      if (err.response?.status === 400) {
+        setError(err.response?.data?.error || 'Email invalide.');
+      } else {
+        setMessage('Si ce compte existe, un nouveau lien a ete envoye.');
+      }
     } finally {
       setLoading(false);
     }
@@ -57,7 +61,7 @@ export const CheckEmailPage = () => {
             </span>
             <h1 className="auth-title">Verifie ta boite mail</h1>
             <p className="auth-subtitle">
-              Un email de confirmation a ete envoye. Clique sur le lien pour activer ton compte et demarrer ton parcours.
+              Saisis ton email pour recevoir un nouveau lien de verification si ton compte n est pas encore active.
             </p>
           </div>
 
