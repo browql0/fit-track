@@ -4,6 +4,7 @@ import { profileService } from '../services/profileService';
 import { Card } from '../components/ui/Card';
 import { Input, Select } from '../components/ui/Input';
 import { ACTIVITY_LEVELS, ACTIVITY_LEVEL_LABELS, GOALS, GOAL_LABELS } from '../utils/constants';
+import { getErrorMessage } from '../utils/errors';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Ruler, Activity, Target, ArrowRight, ArrowLeft, 
@@ -108,7 +109,7 @@ export const ProfileSetup = () => {
       }
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Échec de la sauvegarde');
+      setError(getErrorMessage(err, 'Echec de la sauvegarde'));
     } finally {
       setLoading(false);
     }
@@ -263,7 +264,7 @@ export const ProfileSetup = () => {
         {error && (
           <div className="setup-error">
             <div className="setup-error-dot" />
-            {error}
+            {getErrorMessage(error)}
           </div>
         )}
 

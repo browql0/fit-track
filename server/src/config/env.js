@@ -26,10 +26,13 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
+const normalizeUrl = (value) => value ? value.trim().replace(/\/+$/, '') : value;
+const nodeEnv = process.env.NODE_ENV || 'production';
+
 const env = {
   // Serveur
   PORT: parseInt(process.env.PORT, 10) || 5000,
-  NODE_ENV: process.env.NODE_ENV || 'production',
+  NODE_ENV: nodeEnv,
 
   // Base de données
   DATABASE_URL: process.env.DATABASE_URL,
@@ -39,7 +42,7 @@ const env = {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
 
   // CORS + liens transactionnels
-  CLIENT_URL: process.env.CLIENT_URL,
+  CLIENT_URL: normalizeUrl(process.env.CLIENT_URL),
 
   // Email transactionnel
   EMAIL_VERIFICATION_ENABLED: emailVerificationEnabled,
@@ -47,8 +50,8 @@ const env = {
   EMAIL_FROM: process.env.EMAIL_FROM,
 
   // Helpers
-  isDev: process.env.NODE_ENV === 'development',
-  isProd: process.env.NODE_ENV === 'production',
+  isDev: nodeEnv === 'development',
+  isProd: nodeEnv === 'production',
 };
 
 module.exports = env;

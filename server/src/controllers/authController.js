@@ -4,10 +4,16 @@ const env = require('../config/env');
 
 const getCookieOptions = () => ({
   httpOnly: true,
-  sameSite: 'lax',
-  secure: process.env.NODE_ENV === 'production',
+  sameSite: env.isProd ? 'none' : 'lax',
+  secure: env.isProd,
+  path: '/',
   maxAge: 7 * 24 * 60 * 60 * 1000,
 });
+
+const getClearCookieOptions = () => {
+  const { maxAge, ...options } = getCookieOptions();
+  return options;
+};
 
 const register = async (req, res, next) => {
   try {
@@ -50,11 +56,7 @@ const login = async (req, res, next) => {
 };
 
 const logout = async (_req, res) => {
-  res.clearCookie('token', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-  });
+  res.clearCookie('token', getClearCookieOptions());
   clearCsrfToken(res);
   res.json({ message: 'Deconnexion reussie' });
 };
@@ -67,11 +69,7 @@ const getMe = async (req, res, next) => {
     res.json({ user, csrfToken });
   } catch (error) {
     if (error.errorCode === 'USER_NOT_FOUND') {
-      res.clearCookie('token', {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-      });
+      res.clearCookie('token', getClearCookieOptions());
       clearCsrfToken(res);
       return res.status(401).json({ error: 'Session invalide. Veuillez vous reconnecter.' });
     }

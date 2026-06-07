@@ -8,6 +8,7 @@ import { CustomDatePicker } from '../components/ui/CustomDatePicker';
 import { weightService } from '../services/weightService';
 import { queryKeys } from '../services/queryClient';
 import { getRelativeDate } from '../utils/formatters';
+import { getErrorMessage } from '../utils/errors';
 import './Tracking.css';
 
 export const Tracking = () => {
@@ -54,7 +55,7 @@ export const Tracking = () => {
       setWeight('');
       setNotes('');
     } catch (err) {
-      setError(err.response?.data?.error || 'Erreur lors de l enregistrement.');
+      setError(getErrorMessage(err, 'Erreur lors de l enregistrement.'));
     } finally {
       setSaving(false);
     }

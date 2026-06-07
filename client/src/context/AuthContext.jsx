@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { authService } from '../services/authService';
 import { AuthContext } from './authContext';
-import { prefetchMainTabs } from '../services/queryClient';
+import { prefetchMainTabs, queryClient } from '../services/queryClient';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -11,14 +11,20 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       try {
         const data = await authService.getMe();
-        setUser(data.user);
-        prefetchMainTabs();
+        if (data.user) {
+          setUser(data.user);
+          prefetchMainTabs();
+        }
       } catch (error) {
-        if (error.response?.status !== 401) {
+        const status = error.response?.status;
+        if (status === 401) {
+          setUser(null);
+        } else {
           console.error('Failed to fetch user session', error);
         }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initAuth();
@@ -26,7 +32,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const data = await authService.login(email, password);
-    setUser(data.user);
+    if (data.user) {
+      setUser(data.user);
+    }
     prefetchMainTabs();
     return data;
   };
@@ -43,6 +51,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     await authService.logout();
     setUser(null);
+    queryClient.clear();
   };
 
   return (

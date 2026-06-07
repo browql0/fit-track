@@ -8,6 +8,7 @@ import { CustomDatePicker } from '../components/ui/CustomDatePicker';
 import { workoutService } from '../services/workoutService';
 import { exerciseService } from '../services/exerciseService';
 import { queryKeys } from '../services/queryClient';
+import { getErrorMessage } from '../utils/errors';
 import './Workouts.css';
 
 export const Workouts = () => {
@@ -116,7 +117,7 @@ export const Workouts = () => {
       setDistance('');
       setSets('');
     } catch (err) {
-      setError(err.response?.data?.error || 'Erreur lors de l ajout.');
+      setError(getErrorMessage(err, 'Erreur lors de l ajout.'));
     } finally {
       setSubmitting(false);
     }

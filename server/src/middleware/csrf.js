@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const env = require('../config/env');
 
 const CSRF_COOKIE = 'csrfToken';
 const CSRF_HEADER = 'x-csrf-token';
@@ -19,8 +20,8 @@ const createCsrfToken = () => crypto.randomBytes(32).toString('hex');
 const csrfCookieOptions = () => ({
   httpOnly: false,
   path: '/',
-  sameSite: 'lax',
-  secure: process.env.NODE_ENV === 'production',
+  sameSite: env.isProd ? 'none' : 'lax',
+  secure: env.isProd,
   maxAge: 7 * 24 * 60 * 60 * 1000,
 });
 

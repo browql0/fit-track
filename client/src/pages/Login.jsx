@@ -4,6 +4,7 @@ import { Flame, Lock, Mail, Eye, EyeOff, Zap, Target, Trophy, ChevronRight, Refr
 import { AuthContext } from '../context/authContext';
 import { EMAIL_VERIFICATION_ENABLED } from '../config/features';
 import { authService } from '../services/authService';
+import { getErrorMessage } from '../utils/errors';
 import './Auth.css';
 
 export const Login = () => {
@@ -31,7 +32,7 @@ export const Login = () => {
         setIsEmailNotVerified(true);
         setError('Votre email n est pas encore verifie.');
       } else {
-        setError(err.response?.data?.error || 'Echec de la connexion.');
+        setError(getErrorMessage(err, 'Echec de la connexion.'));
       }
     } finally {
       setLoading(false);

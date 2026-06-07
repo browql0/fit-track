@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Flame, MailCheck, RefreshCcw, Mail } from 'lucide-react';
 import { authService } from '../services/authService';
+import { getErrorMessage } from '../utils/errors';
 import './Auth.css';
 
 export const CheckEmailPage = () => {
@@ -24,7 +25,7 @@ export const CheckEmailPage = () => {
       navigate('/verify-email', { state: { email } });
     } catch (err) {
       if (err.response?.status === 400) {
-        setError(err.response?.data?.error || 'Email invalide.');
+        setError(getErrorMessage(err, 'Email invalide.'));
       } else {
         setMessage('Si ce compte existe, un code de verification a ete envoye.');
       }

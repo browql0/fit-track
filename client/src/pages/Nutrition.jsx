@@ -9,6 +9,7 @@ import { foodService } from '../services/foodService';
 import { profileService } from '../services/profileService';
 import { hydrationService } from '../services/hydrationService';
 import { queryKeys } from '../services/queryClient';
+import { getErrorMessage } from '../utils/errors';
 import './Nutrition.css';
 
 const mealTypes = [
@@ -128,7 +129,7 @@ export const Nutrition = () => {
       setIsModalOpen(false);
       resetAssistant();
     } catch (err) {
-      setError(err.response?.data?.error || 'Impossible d ajouter cet aliment.');
+      setError(getErrorMessage(err, 'Impossible d ajouter cet aliment.'));
     } finally {
       setSubmitting(false);
     }
@@ -175,7 +176,7 @@ export const Nutrition = () => {
       setDraftFood(estimate);
       setQuantity(estimate.suggestedQuantityG || 100);
     } catch (err) {
-      setAssistantError(err.response?.data?.error || 'Impossible de generer une estimation.');
+      setAssistantError(getErrorMessage(err, 'Impossible de generer une estimation.'));
     } finally {
       setSubmitting(false);
     }
@@ -199,7 +200,7 @@ export const Nutrition = () => {
       setSelectedFood(created.food);
       setQuantity(draftFood.suggestedQuantityG || 100);
     } catch (err) {
-      setAssistantError(err.response?.data?.error || 'Impossible de sauvegarder cet aliment.');
+      setAssistantError(getErrorMessage(err, 'Impossible de sauvegarder cet aliment.'));
     } finally {
       setSubmitting(false);
     }

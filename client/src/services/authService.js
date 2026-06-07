@@ -1,4 +1,4 @@
-import api from './api';
+import api, { setCsrfToken } from './api';
 
 export const authService = {
   async register(email, password) {
@@ -22,7 +22,7 @@ export const authService = {
     } catch {
       // Keep local cleanup even when the server is unavailable.
     }
-    localStorage.removeItem('token');
+    setCsrfToken('');
   },
 
   async verifyEmail(email, code) {

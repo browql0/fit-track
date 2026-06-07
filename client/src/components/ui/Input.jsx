@@ -1,4 +1,5 @@
 import { forwardRef, useId, useState, useRef, useEffect } from 'react';
+import { getErrorMessage } from '../../utils/errors';
 import './Input.css';
 
 export const Input = forwardRef(({ label, error, className = '', icon, ...props }, ref) => {
@@ -22,7 +23,7 @@ export const Input = forwardRef(({ label, error, className = '', icon, ...props 
           {...props}
         />
       </div>
-      {error && <span className="input-error-msg">{error}</span>}
+      {error && <span className="input-error-msg">{getErrorMessage(error)}</span>}
     </div>
   );
 });
@@ -90,7 +91,7 @@ export const Select = forwardRef(({ label, error, options, className = '', value
         </div>
       </div>
       
-      {error && <span className="input-error-msg">{error}</span>}
+      {error && <span className="input-error-msg">{getErrorMessage(error)}</span>}
       
       {/* Hidden input for form submission if needed by the parent via ref */}
       <input type="hidden" ref={ref} value={value} name={props.name} />

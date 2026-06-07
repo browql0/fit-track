@@ -16,6 +16,7 @@ import { Select } from '../components/ui/Input';
 
 import { queryKeys } from '../services/queryClient';
 import { ACTIVITY_LEVEL_LABELS, GOAL_LABELS } from '../utils/constants';
+import { getErrorMessage } from '../utils/errors';
 import './Profile.css';
 
 /* ────── helpers ────── */
@@ -115,7 +116,7 @@ export const Profile = () => {
       setActiveModal(null);
       showToast('success', 'Profil mis à jour avec succès');
     } catch (err) {
-      showToast('error', err.response?.data?.error || 'Erreur lors de la mise à jour');
+      showToast('error', getErrorMessage(err, 'Erreur lors de la mise a jour'));
     } finally {
       setEditLoading(false);
     }

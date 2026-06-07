@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Flame, MailCheck, RefreshCcw, ShieldCheck, ChevronRight, Mail } from 'lucide-react';
 import { authService } from '../services/authService';
+import { getErrorMessage } from '../utils/errors';
 import './Auth.css';
 
 const OTP_LENGTH = 6;
@@ -85,7 +86,7 @@ export const VerifyEmailPage = () => {
       setVerified(true);
       setMessage(result.message || 'Email confirme. Redirection vers la connexion...');
     } catch (err) {
-      setError(err.response?.data?.error || 'Code invalide ou expire.');
+      setError(getErrorMessage(err, 'Code invalide ou expire.'));
     } finally {
       setLoading(false);
     }
@@ -108,7 +109,7 @@ export const VerifyEmailPage = () => {
       inputRefs.current[0]?.focus();
     } catch (err) {
       if (err.response?.status === 400) {
-        setError(err.response?.data?.error || 'Email invalide.');
+        setError(getErrorMessage(err, 'Email invalide.'));
       } else {
         setMessage('Si ce compte existe, un nouveau code a ete envoye.');
       }
