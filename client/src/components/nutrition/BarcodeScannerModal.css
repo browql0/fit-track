@@ -159,12 +159,22 @@
 }
 
 .barcode-product-icon {
+  display: grid;
+  flex: 0 0 82px;
+  width: 82px;
+  height: 82px;
+  place-items: center;
   color: #22d3ee;
+  background: rgba(255,255,255,0.055);
+  border-radius: 16px;
+}
+
+.barcode-product-copy {
+  min-width: 0;
 }
 
 .barcode-product-card strong,
-.barcode-product-card span,
-.barcode-product-card small {
+.barcode-product-card span {
   display: block;
 }
 
@@ -172,6 +182,7 @@
   color: #fff;
   font-size: 1rem;
   font-weight: 950;
+  overflow-wrap: anywhere;
 }
 
 .barcode-product-card span {
@@ -181,21 +192,100 @@
   font-weight: 800;
 }
 
-.barcode-product-card small {
-  margin-top: 6px;
-  color: #22d3ee;
+.barcode-nutriscore {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin-top: 10px;
+  padding: 6px 9px;
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.barcode-nutriscore b {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  color: #061016;
+  background: rgba(255,255,255,0.8);
+  border-radius: 999px;
+}
+
+.barcode-nutriscore.a b { background: #10b981; }
+.barcode-nutriscore.b b { background: #84cc16; }
+.barcode-nutriscore.c b { background: #facc15; }
+.barcode-nutriscore.d b { background: #fb923c; }
+.barcode-nutriscore.e b { background: #ef4444; color: #fff; }
+.barcode-nutriscore.unknown b { background: rgba(255,255,255,0.26); color: #fff; }
+
+.barcode-missing-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  color: rgba(255,255,255,0.8);
+  background: rgba(244,63,94,0.08);
+  border: 1px solid rgba(244,63,94,0.18);
+  border-radius: 18px;
+}
+
+.barcode-missing-actions strong,
+.barcode-missing-actions span {
+  display: block;
+}
+
+.barcode-missing-actions strong {
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 950;
+}
+
+.barcode-missing-actions span {
+  margin-top: 5px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.barcode-missing-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  color: #fff;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
   font-weight: 900;
 }
 
 .barcode-macros,
 .barcode-quantity {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
+.barcode-macros {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.barcode-quantity {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .barcode-macros span {
-  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-height: 66px;
+  padding: 10px;
   color: rgba(255,255,255,0.78);
   text-align: center;
   background: rgba(255,255,255,0.04);
@@ -203,6 +293,90 @@
   border-radius: 14px;
   font-size: 0.8rem;
   font-weight: 900;
+}
+
+.barcode-macros span:first-child {
+  grid-column: 1 / -1;
+}
+
+.barcode-macros b {
+  color: #fff;
+  font-size: 1rem;
+}
+
+.barcode-macros small {
+  color: rgba(255,255,255,0.48);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.barcode-nutrition-table,
+.barcode-log-section {
+  overflow: hidden;
+  background: rgba(255,255,255,0.035);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 18px;
+}
+
+.barcode-nutrition-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 0 14px;
+  color: rgba(255,255,255,0.78);
+  border-top: 1px solid rgba(255,255,255,0.055);
+  font-size: 0.86rem;
+}
+
+.barcode-nutrition-row:first-child {
+  border-top: 0;
+}
+
+.barcode-nutrition-row.head {
+  min-height: 44px;
+  color: rgba(255,255,255,0.52);
+  background: rgba(255,255,255,0.04);
+  font-size: 0.75rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.barcode-nutrition-row strong {
+  color: #fff;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.barcode-insights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.barcode-insights span {
+  padding: 8px 10px;
+  color: rgba(255,255,255,0.88);
+  background: rgba(16,185,129,0.12);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.barcode-log-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+.barcode-section-label {
+  color: rgba(255,255,255,0.54);
+  font-size: 0.74rem;
+  font-weight: 950;
+  text-transform: uppercase;
 }
 
 .barcode-quantity button {
@@ -244,5 +418,38 @@
   .barcode-stage {
     min-height: calc(100dvh - 286px);
     border-radius: 20px;
+  }
+
+  .barcode-product {
+    gap: 12px;
+  }
+
+  .barcode-product-card {
+    align-items: flex-start;
+    padding: 14px;
+  }
+
+  .barcode-product-card img,
+  .barcode-product-icon {
+    flex-basis: 72px;
+    width: 72px;
+    height: 72px;
+    border-radius: 14px;
+  }
+
+  .barcode-nutrition-row {
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 0.82rem;
+  }
+}
+
+@media (min-width: 520px) {
+  .barcode-macros {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .barcode-macros span:first-child {
+    grid-column: auto;
   }
 }

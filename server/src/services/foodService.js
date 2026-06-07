@@ -7,6 +7,12 @@ const FOOD_CATEGORIES = ['protein', 'grain', 'vegetable', 'fruit', 'dairy', 'fat
 const clampNumber = (value, min, max) => Math.min(max, Math.max(min, Number(value || 0)));
 const roundMacro = (value) => Math.round(clampNumber(value, 0, 100) * 10) / 10;
 const roundCalories = (value) => Math.round(clampNumber(value, 0, 1000));
+const roundOptionalMacro = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  if (!Number.isFinite(number)) return null;
+  return Math.round(clampNumber(number, 0, 1000) * 10) / 10;
+};
 
 function createError(message, statusCode) {
   const err = new Error(message);
@@ -126,6 +132,7 @@ function mapOpenFoodFactsBarcodeProduct(product, barcode) {
   const protein = nutriments.proteins_100g;
   const carbs = nutriments.carbohydrates_100g;
   const fat = nutriments.fat_100g;
+  const nutriScore = String(product.nutriscore_grade || '').trim().toUpperCase();
 
   if (!name || calories === null || protein === undefined || carbs === undefined || fat === undefined) {
     return null;
@@ -144,12 +151,29 @@ function mapOpenFoodFactsBarcodeProduct(product, barcode) {
     brand: product.brands ? String(product.brands).slice(0, 255) : null,
     imageUrl: product.image_url || null,
     source: 'openfoodfacts',
+    nutriScore: ['A', 'B', 'C', 'D', 'E'].includes(nutriScore) ? nutriScore : null,
+    sugarsPer100g: roundOptionalMacro(nutriments.sugars_100g),
+    saturatedFatPer100g: roundOptionalMacro(nutriments['saturated-fat_100g']),
+    fiberPer100g: roundOptionalMacro(nutriments.fiber_100g),
+    saltPer100g: roundOptionalMacro(nutriments.salt_100g),
+    sodiumPer100g: roundOptionalMacro(nutriments.sodium_100g),
   };
+}
+
+function hasNutritionDetails(food) {
+  return Boolean(
+    food?.nutriScore
+    || food?.sugarsPer100g != null
+    || food?.saturatedFatPer100g != null
+    || food?.fiberPer100g != null
+    || food?.saltPer100g != null
+    || food?.sodiumPer100g != null
+  );
 }
 
 async function fetchOpenFoodFactsBarcode(barcode) {
   const url = new URL(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`);
-  url.searchParams.set('fields', 'status,product_name,product_name_fr,product_name_en,brands,image_url,nutriments');
+  url.searchParams.set('fields', 'status,product_name,product_name_fr,product_name_en,brands,image_url,nutriscore_grade,nutriments');
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
@@ -188,16 +212,25 @@ async function getFoodByBarcode(barcodeValue) {
     where: { barcode },
   });
 
-  if (existing) return existing;
+  if (existing && hasNutritionDetails(existing)) return existing;
 
   const payload = await fetchOpenFoodFactsBarcode(barcode);
   if (payload.status !== 1 || !payload.product) {
+    if (existing) return existing;
     throw createCodedError('Produit introuvable', 404, 'PRODUCT_NOT_FOUND');
   }
 
   const food = mapOpenFoodFactsBarcodeProduct(payload.product, barcode);
   if (!food) {
+    if (existing) return existing;
     throw createCodedError('Produit introuvable ou nutrition incomplete', 404, 'PRODUCT_NOT_FOUND');
+  }
+
+  if (existing) {
+    return prisma.food.update({
+      where: { id: existing.id },
+      data: food,
+    });
   }
 
   return prisma.food.create({

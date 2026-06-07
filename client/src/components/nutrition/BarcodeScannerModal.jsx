@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Html5Qrcode } from 'html5-qrcode';
-import { AlertTriangle, Camera, CheckCircle2, Info, Keyboard, Search, X } from 'lucide-react';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { AlertTriangle, Camera, CheckCircle2, Info, Keyboard, PencilLine, Search, X } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { foodService } from '../../services/foodService';
@@ -18,6 +18,71 @@ const mealTypes = [
 ];
 
 const normalizeBarcode = (value) => String(value || '').trim().replace(/\D/g, '');
+
+const barcodeFormatsToSupport = [
+  Html5QrcodeSupportedFormats.EAN_13,
+  Html5QrcodeSupportedFormats.EAN_8,
+  Html5QrcodeSupportedFormats.UPC_A,
+  Html5QrcodeSupportedFormats.UPC_E,
+  Html5QrcodeSupportedFormats.CODE_128,
+];
+
+const formatNumber = (value, suffix = 'g') => {
+  if (value === null || value === undefined || value === '') return '--';
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '--';
+  const formatted = Number.isInteger(number) ? String(number) : number.toFixed(1).replace(/\.0$/, '');
+  return `${formatted}${suffix}`;
+};
+
+const formatCalories = (value) => {
+  if (value === null || value === undefined || value === '') return '--';
+  const number = Number(value);
+  return Number.isFinite(number) ? `${Math.round(number)} kcal` : '--';
+};
+
+const getNutriScoreClass = (value) => {
+  const grade = String(value || '').toLowerCase();
+  return ['a', 'b', 'c', 'd', 'e'].includes(grade) ? grade : 'unknown';
+};
+
+const getNutritionMessages = (food) => {
+  const messages = [];
+  const protein = Number(food?.proteinPer100g);
+  const sugars = Number(food?.sugarsPer100g);
+  const fat = Number(food?.fatPer100g);
+  const nutriScore = String(food?.nutriScore || '').toUpperCase();
+
+  if (Number.isFinite(protein) && protein >= 10) messages.push('Bon apport en protéines');
+  if (Number.isFinite(sugars) && sugars >= 15) messages.push('Attention, produit sucré');
+  if (Number.isFinite(fat) && fat >= 17.5) messages.push('Produit riche en lipides');
+  if (['A', 'B'].includes(nutriScore)) messages.push('Bon choix global');
+  if (['D', 'E'].includes(nutriScore)) messages.push('À consommer occasionnellement');
+
+  return messages;
+};
+
+const playConfirmationTone = () => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const context = new AudioContext();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.08, context.currentTime + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.12);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.14);
+    window.setTimeout(() => context.close?.(), 220);
+  } catch {
+    // Audio feedback is optional.
+  }
+};
 
 const getCameraUnavailableMessage = () => {
   if (typeof window !== 'undefined' && window.isSecureContext === false) {
@@ -37,7 +102,7 @@ export const BarcodeScannerModal = () => {
   const rawId = useId();
   const scannerId = useMemo(() => `fittrack-global-barcode-${rawId.replace(/[^a-zA-Z0-9_-]/g, '')}`, [rawId]);
   const scannerRef = useRef(null);
-  const lockedRef = useRef(false);
+  const isProcessingRef = useRef(false);
   const [status, setStatus] = useState('ready');
   const [message, setMessage] = useState('Place le code-barres dans le cadre.');
   const [selectedFood, setSelectedFood] = useState(null);
@@ -61,7 +126,7 @@ export const BarcodeScannerModal = () => {
   });
 
   const resetScannerState = useCallback(() => {
-    lockedRef.current = false;
+    isProcessingRef.current = false;
     setStatus('ready');
     setMessage('Place le code-barres dans le cadre.');
     setSelectedFood(null);
@@ -97,15 +162,19 @@ export const BarcodeScannerModal = () => {
       return;
     }
 
-    if (lockedRef.current) return;
-    lockedRef.current = true;
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+    console.info('[barcode-scanner] code detecte', barcode);
     window.navigator.vibrate?.(70);
+    playConfirmationTone();
     setStatus('searching');
     setMessage('Recherche du produit...');
     await stopScanner();
 
     try {
+      console.info('[barcode-scanner] appel API lance', barcode);
       const food = await foodService.getFoodByBarcode(barcode);
+      console.info('[barcode-scanner] reponse API recue', food);
       setSelectedFood(food);
       setStatus('found');
       setMessage('Produit trouve');
@@ -113,8 +182,8 @@ export const BarcodeScannerModal = () => {
     } catch (err) {
       const code = err.response?.data?.code;
       setStatus('missing');
-      setMessage(code === 'PRODUCT_NOT_FOUND' ? 'Produit introuvable' : getErrorMessage(err, 'Recherche indisponible.'));
-      lockedRef.current = false;
+      setMessage(code === 'PRODUCT_NOT_FOUND' ? 'Produit non trouvé dans la base alimentaire' : getErrorMessage(err, 'Recherche indisponible.'));
+      isProcessingRef.current = false;
     }
   }, [stopScanner]);
 
@@ -141,17 +210,23 @@ export const BarcodeScannerModal = () => {
       return undefined;
     }
 
-    const scanner = new Html5Qrcode(scannerId, { verbose: false });
+    const scanner = new Html5Qrcode(scannerId, {
+      formatsToSupport: barcodeFormatsToSupport,
+      verbose: false,
+    });
     scannerRef.current = scanner;
 
     scanner.start(
       { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 280, height: 170 }, aspectRatio: 1.777 },
+      { fps: 15, qrbox: 250 },
       (decodedText) => {
+        console.info('[barcode-scanner] onScanSuccess appele');
         if (!cancelled) resolveBarcode(decodedText);
       },
       () => {}
-    ).catch((err) => {
+    ).then(() => {
+      if (!cancelled) console.info('[barcode-scanner] scanner demarre');
+    }).catch((err) => {
       if (cancelled) return;
       const denied = err?.name === 'NotAllowedError' || String(err || '').toLowerCase().includes('permission');
       setStatus('error');
@@ -188,6 +263,20 @@ export const BarcodeScannerModal = () => {
     await handleClose();
   };
 
+  const nutritionRows = selectedFood ? [
+    ['Calories', formatCalories(selectedFood.caloriesPer100g)],
+    ['Protéines', formatNumber(selectedFood.proteinPer100g)],
+    ['Glucides', formatNumber(selectedFood.carbsPer100g)],
+    ['Sucres', formatNumber(selectedFood.sugarsPer100g)],
+    ['Lipides', formatNumber(selectedFood.fatPer100g)],
+    ['Acides gras saturés', formatNumber(selectedFood.saturatedFatPer100g)],
+    ['Fibres', formatNumber(selectedFood.fiberPer100g)],
+    ['Sel', formatNumber(selectedFood.saltPer100g)],
+    ['Sodium', formatNumber(selectedFood.sodiumPer100g)],
+  ] : [];
+  const nutritionMessages = selectedFood ? getNutritionMessages(selectedFood) : [];
+  const nutriScoreClass = getNutriScoreClass(selectedFood?.nutriScore);
+
   return (
     <Modal isOpen={scannerOpen} onClose={handleClose} title="Scanner produit" className="modal-content--scanner barcode-modal" overlayClassName="barcode-overlay">
       {!selectedFood ? (
@@ -204,8 +293,18 @@ export const BarcodeScannerModal = () => {
 
           <button type="button" className="barcode-manual-toggle" onClick={() => setManualOpen((value) => !value)}>
             {manualOpen ? <X size={18} /> : <Keyboard size={18} />}
-            {manualOpen ? 'Masquer la saisie' : 'Entrer le code-barres manuellement'}
+            {manualOpen ? 'Masquer la saisie' : 'Saisir le code-barres manuellement'}
           </button>
+
+          {status === 'missing' && (
+            <div className="barcode-missing-actions">
+              <div>
+                <strong>Produit non trouvé dans la base alimentaire</strong>
+                <span>Tu peux créer un aliment personnalisé ou saisir les valeurs nutritionnelles manuellement.</span>
+              </div>
+              <button type="button" onClick={handleClose}><PencilLine size={17} /> Créer un aliment personnalisé</button>
+            </div>
+          )}
 
           {manualOpen && (
             <form className="barcode-manual-form" onSubmit={handleManualSubmit}>
@@ -220,37 +319,63 @@ export const BarcodeScannerModal = () => {
         <form className="barcode-product" onSubmit={handleAddEntry}>
           <div className={`barcode-product-card ${selectedFood.imageUrl ? 'with-image' : ''}`}>
             {selectedFood.imageUrl ? <img src={selectedFood.imageUrl} alt="" /> : <div className="barcode-product-icon"><Info size={24} /></div>}
-            <div>
+            <div className="barcode-product-copy">
               <strong>{selectedFood.name}</strong>
               {selectedFood.brand && <span>{selectedFood.brand}</span>}
-              <small>{selectedFood.caloriesPer100g} kcal / 100g</small>
+              <div className={`barcode-nutriscore ${nutriScoreClass}`}>
+                Nutri-Score <b>{selectedFood.nutriScore || '--'}</b>
+              </div>
             </div>
           </div>
 
           <div className="barcode-macros">
-            <span>P {selectedFood.proteinPer100g}g</span>
-            <span>G {selectedFood.carbsPer100g}g</span>
-            <span>L {selectedFood.fatPer100g}g</span>
+            <span><b>{formatCalories(selectedFood.caloriesPer100g)}</b><small>/ 100g</small></span>
+            <span><b>{formatNumber(selectedFood.proteinPer100g)}</b><small>Protéines</small></span>
+            <span><b>{formatNumber(selectedFood.carbsPer100g)}</b><small>Glucides</small></span>
+            <span><b>{formatNumber(selectedFood.fatPer100g)}</b><small>Lipides</small></span>
+            <span><b>{formatNumber(selectedFood.sugarsPer100g)}</b><small>Sucres</small></span>
           </div>
 
-          <div className="barcode-quantity">
-            {[50, 100].map((value) => (
-              <button key={value} type="button" className={Number(quantity) === value ? 'active' : ''} onClick={() => setQuantity(value)}>
-                {value}g
-              </button>
+          <div className="barcode-nutrition-table" role="table" aria-label="Tableau nutritionnel">
+            <div className="barcode-nutrition-row head" role="row">
+              <span role="columnheader">Nutriment</span>
+              <span role="columnheader">Pour 100g</span>
+            </div>
+            {nutritionRows.map(([label, value]) => (
+              <div key={label} className="barcode-nutrition-row" role="row">
+                <span role="cell">{label}</span>
+                <strong role="cell">{value}</strong>
+              </div>
             ))}
-            <button type="button" className={![50, 100].includes(Number(quantity)) ? 'active' : ''}>
-              Portion perso
+          </div>
+
+          {nutritionMessages.length > 0 && (
+            <div className="barcode-insights">
+              {nutritionMessages.map((item) => <span key={item}>{item}</span>)}
+            </div>
+          )}
+
+          <div className="barcode-log-section">
+            <span className="barcode-section-label">Ajout au journal</span>
+            <div className="barcode-quantity">
+              {[50, 100].map((value) => (
+                <button key={value} type="button" className={Number(quantity) === value ? 'active' : ''} onClick={() => setQuantity(value)}>
+                  {value}g
+                </button>
+              ))}
+              <button type="button" className={![50, 100].includes(Number(quantity)) ? 'active' : ''}>
+                Portion perso
+              </button>
+            </div>
+
+            <Input label="Quantite (g)" type="number" min="1" max="2000" value={quantity} onChange={(event) => setQuantity(event.target.value)} required />
+            <select className="barcode-select" value={mealType} onChange={(event) => setMealType(event.target.value)}>
+              {mealTypes.map((meal) => <option key={meal.id} value={meal.id}>{meal.label}</option>)}
+            </select>
+            <button type="submit" className="barcode-primary" disabled={addEntryMutation.isPending}>
+              {addEntryMutation.isPending ? 'Ajout...' : 'Ajouter au journal'}
             </button>
           </div>
-
-          <Input label="Quantite (g)" type="number" min="1" max="2000" value={quantity} onChange={(event) => setQuantity(event.target.value)} required />
-          <select className="barcode-select" value={mealType} onChange={(event) => setMealType(event.target.value)}>
-            {mealTypes.map((meal) => <option key={meal.id} value={meal.id}>{meal.label}</option>)}
-          </select>
-          <button type="submit" className="barcode-primary" disabled={addEntryMutation.isPending}>
-            {addEntryMutation.isPending ? 'Ajout...' : 'Ajouter au journal'}
-          </button>
         </form>
       )}
     </Modal>

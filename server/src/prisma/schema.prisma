@@ -111,6 +111,12 @@ model Food {
   brand           String?  @db.VarChar(255)
   imageUrl        String?  @map("image_url") @db.Text
   source          String?  @db.VarChar(50)
+  nutriScore      String?  @map("nutri_score") @db.VarChar(1)
+  sugarsPer100g   Float?   @map("sugars_per_100g")
+  saturatedFatPer100g Float? @map("saturated_fat_per_100g")
+  fiberPer100g    Float?   @map("fiber_per_100g")
+  saltPer100g     Float?   @map("salt_per_100g")
+  sodiumPer100g   Float?   @map("sodium_per_100g")
   createdBy       Int?     @map("created_by")
   isPublic        Boolean  @default(false) @map("is_public")
   createdAt       DateTime @default(now()) @map("created_at")
