@@ -1,4 +1,5 @@
 const app = require('./src/app');
+app.set('trust proxy', 1);
 const env = require('./src/config/env');
 const prisma = require('./src/config/prismaClient');
 
