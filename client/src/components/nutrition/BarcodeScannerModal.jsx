@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { AlertTriangle, Camera, CheckCircle2, Info, Keyboard, PencilLine, Search, X } from 'lucide-react';
+import { AlertTriangle, Camera, CheckCircle2, ImageUp, Info, Keyboard, PencilLine, Search, ScanLine, Upload, X } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { foodService } from '../../services/foodService';
@@ -18,6 +18,15 @@ const mealTypes = [
 ];
 
 const normalizeBarcode = (value) => String(value || '').trim().replace(/\D/g, '');
+
+const acceptedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const acceptedImageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+
+const isAcceptedImageFile = (file) => {
+  const type = String(file?.type || '').toLowerCase();
+  const name = String(file?.name || '').toLowerCase();
+  return acceptedImageTypes.includes(type) || acceptedImageExtensions.some((extension) => name.endsWith(extension));
+};
 
 const barcodeFormatsToSupport = [
   Html5QrcodeSupportedFormats.EAN_13,
@@ -103,6 +112,8 @@ export const BarcodeScannerModal = () => {
   const scannerId = useMemo(() => `fittrack-global-barcode-${rawId.replace(/[^a-zA-Z0-9_-]/g, '')}`, [rawId]);
   const scannerRef = useRef(null);
   const isProcessingRef = useRef(false);
+  const photoInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
   const [status, setStatus] = useState('ready');
   const [message, setMessage] = useState('Place le code-barres dans le cadre.');
   const [selectedFood, setSelectedFood] = useState(null);
@@ -110,6 +121,9 @@ export const BarcodeScannerModal = () => {
   const [mealType, setMealType] = useState(selectedMealType || 'lunch');
   const [manualBarcode, setManualBarcode] = useState('');
   const [manualOpen, setManualOpen] = useState(false);
+  const [scanMode, setScanMode] = useState('live');
+  const [detectedBarcode, setDetectedBarcode] = useState('');
+  const [missingReason, setMissingReason] = useState(null);
 
   const invalidateViews = useCallback((date) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
@@ -133,6 +147,9 @@ export const BarcodeScannerModal = () => {
     setQuantity(100);
     setManualBarcode('');
     setManualOpen(false);
+    setScanMode('live');
+    setDetectedBarcode('');
+    setMissingReason(null);
     setMealType(selectedMealType || 'lunch');
   }, [selectedMealType]);
 
@@ -158,6 +175,7 @@ export const BarcodeScannerModal = () => {
     const barcode = normalizeBarcode(barcodeValue);
     if (!barcode || barcode.length < 6) {
       setStatus('missing');
+      setMissingReason('invalid');
       setMessage('Code-barres invalide.');
       return;
     }
@@ -165,14 +183,17 @@ export const BarcodeScannerModal = () => {
     if (isProcessingRef.current) return;
     isProcessingRef.current = true;
     console.info('[barcode-scanner] code detecte', barcode);
+    setDetectedBarcode(barcode);
+    setMissingReason(null);
     window.navigator.vibrate?.(70);
     playConfirmationTone();
     setStatus('searching');
-    setMessage('Recherche du produit...');
+    setMessage(`Code détecté : ${barcode}`);
     await stopScanner();
 
     try {
       console.info('[barcode-scanner] appel API lance', barcode);
+      setMessage('Recherche du produit...');
       const food = await foodService.getFoodByBarcode(barcode);
       console.info('[barcode-scanner] reponse API recue', food);
       setSelectedFood(food);
@@ -182,10 +203,99 @@ export const BarcodeScannerModal = () => {
     } catch (err) {
       const code = err.response?.data?.code;
       setStatus('missing');
+      setMissingReason('product');
       setMessage(code === 'PRODUCT_NOT_FOUND' ? 'Produit non trouvé dans la base alimentaire' : getErrorMessage(err, 'Recherche indisponible.'));
       isProcessingRef.current = false;
     }
   }, [stopScanner]);
+
+  const startLiveScanner = useCallback(async () => {
+    const cameraSupported = typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia);
+
+    if (!cameraSupported) {
+      setStatus('error');
+      setMessage(getCameraUnavailableMessage());
+      setManualOpen(true);
+      return;
+    }
+
+    await stopScanner();
+    const scanner = new Html5Qrcode(scannerId, {
+      formatsToSupport: barcodeFormatsToSupport,
+      verbose: false,
+    });
+    scannerRef.current = scanner;
+    setScanMode('live');
+    setStatus('ready');
+    setMessage('Place le code-barres dans le cadre.');
+    console.info('[barcode-scanner] demarrage scanner live');
+
+    try {
+      await scanner.start(
+        { facingMode: 'environment' },
+        { fps: 15, qrbox: 250 },
+        (decodedText) => {
+          console.info('[barcode-scanner] onScanSuccess appele');
+          resolveBarcode(decodedText);
+        },
+        () => {}
+      );
+      console.info('[barcode-scanner] scanner demarre');
+    } catch (err) {
+      const denied = err?.name === 'NotAllowedError' || String(err || '').toLowerCase().includes('permission');
+      setStatus('error');
+      setMessage(denied ? getCameraDeniedMessage() : getCameraUnavailableMessage());
+      setManualOpen(true);
+    }
+  }, [resolveBarcode, scannerId, stopScanner]);
+
+  const handleImageFile = useCallback(async (file) => {
+    if (!file || isProcessingRef.current) return;
+
+    if (!isAcceptedImageFile(file)) {
+      setStatus('missing');
+      setMissingReason('image');
+      setMessage('Format image non supporté. Utilise jpg, jpeg, png ou webp.');
+      return;
+    }
+
+    isProcessingRef.current = true;
+    setScanMode('photo');
+    setDetectedBarcode('');
+    setSelectedFood(null);
+    setStatus('searching');
+    setMissingReason(null);
+    setMessage('Analyse de la photo...');
+    console.info('[barcode-scanner] analyse image lancee', file.name || file.type);
+    await stopScanner();
+
+    const scanner = new Html5Qrcode(scannerId, {
+      formatsToSupport: barcodeFormatsToSupport,
+      verbose: false,
+    });
+    scannerRef.current = scanner;
+
+    try {
+      const decodedText = await scanner.scanFile(file, true);
+      console.info('[barcode-scanner] code detecte depuis image', decodedText);
+      await scanner.clear();
+      scannerRef.current = null;
+      isProcessingRef.current = false;
+      await resolveBarcode(decodedText);
+    } catch (err) {
+      console.info('[barcode-scanner] aucun code detecte dans image', err);
+      try {
+        await scanner.clear();
+      } catch {
+        // ignore
+      }
+      scannerRef.current = null;
+      isProcessingRef.current = false;
+      setStatus('missing');
+      setMissingReason('image');
+      setMessage('Aucun code-barres détecté');
+    }
+  }, [resolveBarcode, scannerId, stopScanner]);
 
   useEffect(() => {
     if (!scannerOpen) {
@@ -197,48 +307,15 @@ export const BarcodeScannerModal = () => {
     window.setTimeout(() => {
       if (!cancelled) resetScannerState();
     }, 0);
-    const cameraSupported = typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia);
-
-    if (!cameraSupported) {
-      window.setTimeout(() => {
-        if (!cancelled) {
-          setStatus('error');
-          setMessage(getCameraUnavailableMessage());
-          setManualOpen(true);
-        }
-      }, 0);
-      return undefined;
-    }
-
-    const scanner = new Html5Qrcode(scannerId, {
-      formatsToSupport: barcodeFormatsToSupport,
-      verbose: false,
-    });
-    scannerRef.current = scanner;
-
-    scanner.start(
-      { facingMode: 'environment' },
-      { fps: 15, qrbox: 250 },
-      (decodedText) => {
-        console.info('[barcode-scanner] onScanSuccess appele');
-        if (!cancelled) resolveBarcode(decodedText);
-      },
-      () => {}
-    ).then(() => {
-      if (!cancelled) console.info('[barcode-scanner] scanner demarre');
-    }).catch((err) => {
-      if (cancelled) return;
-      const denied = err?.name === 'NotAllowedError' || String(err || '').toLowerCase().includes('permission');
-      setStatus('error');
-      setMessage(denied ? getCameraDeniedMessage() : getCameraUnavailableMessage());
-      setManualOpen(true);
-    });
+    window.setTimeout(() => {
+      if (!cancelled) startLiveScanner();
+    }, 0);
 
     return () => {
       cancelled = true;
       stopScanner();
     };
-  }, [scannerOpen, resetScannerState, resolveBarcode, scannerId, stopScanner]);
+  }, [scannerOpen, resetScannerState, startLiveScanner, stopScanner]);
 
   const handleClose = async () => {
     await stopScanner();
@@ -248,6 +325,19 @@ export const BarcodeScannerModal = () => {
   const handleManualSubmit = (event) => {
     event.preventDefault();
     resolveBarcode(manualBarcode);
+  };
+
+  const handlePhotoInput = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    handleImageFile(file);
+  };
+
+  const restartLiveScanner = async () => {
+    if (isProcessingRef.current) return;
+    setManualOpen(false);
+    setDetectedBarcode('');
+    await startLiveScanner();
   };
 
   const handleAddEntry = async (event) => {
@@ -276,6 +366,7 @@ export const BarcodeScannerModal = () => {
   ] : [];
   const nutritionMessages = selectedFood ? getNutritionMessages(selectedFood) : [];
   const nutriScoreClass = getNutriScoreClass(selectedFood?.nutriScore);
+  const isBusy = status === 'searching';
 
   return (
     <Modal isOpen={scannerOpen} onClose={handleClose} title="Scanner produit" className="modal-content--scanner barcode-modal" overlayClassName="barcode-overlay">
@@ -291,18 +382,57 @@ export const BarcodeScannerModal = () => {
             <span>{message}</span>
           </div>
 
-          <button type="button" className="barcode-manual-toggle" onClick={() => setManualOpen((value) => !value)}>
-            {manualOpen ? <X size={18} /> : <Keyboard size={18} />}
-            {manualOpen ? 'Masquer la saisie' : 'Saisir le code-barres manuellement'}
-          </button>
+          {detectedBarcode && status !== 'searching' && (
+            <div className="barcode-detected"><CheckCircle2 size={16} /> Code détecté : {detectedBarcode}</div>
+          )}
+
+          <div className="barcode-photo-help">
+            Le scan ne détecte pas ? Prends une photo nette du code-barres.
+          </div>
+
+          <div className="barcode-actions-grid">
+            <button type="button" className={scanMode === 'live' ? 'active' : ''} onClick={restartLiveScanner} disabled={isBusy}>
+              <ScanLine size={18} /> Scanner en direct
+            </button>
+            <button type="button" onClick={() => photoInputRef.current?.click()} disabled={isBusy}>
+              <Camera size={18} /> Prendre une photo
+            </button>
+            <button type="button" onClick={() => galleryInputRef.current?.click()} disabled={isBusy}>
+              <Upload size={18} /> Importer une image
+            </button>
+            <button type="button" className={manualOpen ? 'active' : ''} onClick={() => setManualOpen((value) => !value)} disabled={isBusy}>
+              {manualOpen ? <X size={18} /> : <Keyboard size={18} />}
+              {manualOpen ? 'Masquer la saisie' : 'Saisir le code manuellement'}
+            </button>
+          </div>
+
+          <input
+            ref={photoInputRef}
+            className="barcode-file-input"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handlePhotoInput}
+          />
+          <input
+            ref={galleryInputRef}
+            className="barcode-file-input"
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoInput}
+          />
 
           {status === 'missing' && (
             <div className="barcode-missing-actions">
               <div>
-                <strong>Produit non trouvé dans la base alimentaire</strong>
-                <span>Tu peux créer un aliment personnalisé ou saisir les valeurs nutritionnelles manuellement.</span>
+                <strong>{missingReason === 'image' ? 'Aucun code-barres détecté' : 'Produit non trouvé dans la base alimentaire'}</strong>
+                <span>{missingReason === 'image' ? 'Reprends une photo nette, bien cadrée, ou importe une autre image.' : 'Tu peux créer un aliment personnalisé ou saisir les valeurs nutritionnelles manuellement.'}</span>
               </div>
-              <button type="button" onClick={handleClose}><PencilLine size={17} /> Créer un aliment personnalisé</button>
+              {missingReason === 'image' ? (
+                <button type="button" onClick={() => photoInputRef.current?.click()}><ImageUp size={17} /> Reprendre une photo</button>
+              ) : (
+                <button type="button" onClick={handleClose}><PencilLine size={17} /> Créer un aliment personnalisé</button>
+              )}
             </div>
           )}
 
@@ -325,6 +455,7 @@ export const BarcodeScannerModal = () => {
               <div className={`barcode-nutriscore ${nutriScoreClass}`}>
                 Nutri-Score <b>{selectedFood.nutriScore || '--'}</b>
               </div>
+              {detectedBarcode && <small className="barcode-product-code">Code détecté : {detectedBarcode}</small>}
             </div>
           </div>
 
