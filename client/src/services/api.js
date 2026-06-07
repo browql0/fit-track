@@ -14,6 +14,13 @@ const getCookie = (name) => {
 };
 
 const unsafeMethods = new Set(['post', 'put', 'patch', 'delete']);
+const csrfExemptPaths = new Set([
+  '/auth/login',
+  '/auth/register',
+  '/auth/logout',
+  '/auth/verify-email',
+  '/auth/resend-code',
+]);
 const envBaseUrl = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, '');
 const baseURL = envBaseUrl || (import.meta.env.DEV ? '/api' : undefined);
 
@@ -83,11 +90,13 @@ const refreshCsrfToken = async () => {
 
 api.interceptors.request.use(
   async (config) => {
+    const requestPath = String(config.url || '').split('?')[0];
+
     if (authToken && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${authToken}`;
     }
 
-    if (unsafeMethods.has(String(config.method).toLowerCase())) {
+    if (unsafeMethods.has(String(config.method).toLowerCase()) && !csrfExemptPaths.has(requestPath)) {
       let requestCsrfToken = getCookie('csrfToken');
       if (!requestCsrfToken && !config.skipCsrfRefresh) {
         requestCsrfToken = await refreshCsrfToken();
@@ -119,8 +128,9 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const originalRequest = error.config;
     const csrfInvalid = status === 403 && error.response?.data?.error === 'Protection CSRF invalide';
+    const requestPath = String(originalRequest?.url || '').split('?')[0];
 
-    if (csrfInvalid && originalRequest && !originalRequest._csrfRetry) {
+    if (csrfInvalid && originalRequest && !originalRequest._csrfRetry && !csrfExemptPaths.has(requestPath)) {
       originalRequest._csrfRetry = true;
       try {
         await refreshCsrfToken();
@@ -130,7 +140,8 @@ api.interceptors.response.use(
       }
     }
 
-    if (status === 401 || status === 403) {
+    const expectedAnonymousMe = status === 401 && requestPath === '/auth/me' && !authToken;
+    if ((status === 401 || status === 403) && !expectedAnonymousMe) {
       console.warn(`[auth] ${status} ${error.config?.method?.toUpperCase() || 'GET'} ${error.config?.url}`, error.response?.data);
     }
     return Promise.reject(error);

@@ -19,6 +19,18 @@ const mealTypes = [
 
 const normalizeBarcode = (value) => String(value || '').trim().replace(/\D/g, '');
 
+const getCameraUnavailableMessage = () => {
+  if (typeof window !== 'undefined' && window.isSecureContext === false) {
+    return 'La camera est bloquee car FitTrack est ouvert en HTTP. Sur iPhone Safari/PWA, la permission camera apparait seulement en HTTPS. Utilise une URL HTTPS ou entre le code manuellement.';
+  }
+
+  return 'Camera indisponible. Tu peux entrer le code-barres manuellement.';
+};
+
+const getCameraDeniedMessage = () => {
+  return 'Autorise l acces a la camera dans les reglages Safari ou de la PWA FitTrack, puis rouvre le scanner.';
+};
+
 export const BarcodeScannerModal = () => {
   const queryClient = useQueryClient();
   const { scannerOpen, closeScanner, selectedMealType, selectedDate, onProductAdded } = useScanner();
@@ -122,7 +134,7 @@ export const BarcodeScannerModal = () => {
       window.setTimeout(() => {
         if (!cancelled) {
           setStatus('error');
-          setMessage('Autorise l acces a la camera pour scanner un produit. En Safari/PWA, ouvre FitTrack en HTTPS.');
+          setMessage(getCameraUnavailableMessage());
           setManualOpen(true);
         }
       }, 0);
@@ -143,7 +155,7 @@ export const BarcodeScannerModal = () => {
       if (cancelled) return;
       const denied = err?.name === 'NotAllowedError' || String(err || '').toLowerCase().includes('permission');
       setStatus('error');
-      setMessage(denied ? 'Autorise l acces a la camera pour scanner un produit.' : 'Camera indisponible. Tu peux entrer le code manuellement.');
+      setMessage(denied ? getCameraDeniedMessage() : getCameraUnavailableMessage());
       setManualOpen(true);
     });
 
