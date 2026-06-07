@@ -50,6 +50,11 @@ const csrfProtection = (req, res, next) => {
     return next();
   }
 
+  const authHeader = req.headers.authorization || '';
+  if (authHeader.toLowerCase().startsWith('bearer ')) {
+    return next();
+  }
+
   const cookieToken = getCookieValue(req.headers.cookie, CSRF_COOKIE);
   const headerToken = req.headers[CSRF_HEADER];
 
