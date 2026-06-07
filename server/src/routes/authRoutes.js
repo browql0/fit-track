@@ -1,10 +1,15 @@
 const express = require('express');
-const { body, query } = require('express-validator');
+const { body } = require('express-validator');
 const validate = require('../middleware/validate');
 const { auth } = require('../middleware/auth');
 const authController = require('../controllers/authController');
+const env = require('../config/env');
 
 const router = express.Router();
+const verificationDisabledResponse = (_req, res) => res.json({
+  success: true,
+  message: 'Email verification temporarily disabled',
+});
 
 router.post(
   '/register',
@@ -36,19 +41,26 @@ router.post(
   authController.login
 );
 
-router.get(
+router.post(
   '/verify-email',
+  ...(env.EMAIL_VERIFICATION_ENABLED ? [
   [
-    query('token')
-      .isLength({ min: 64, max: 128 })
-      .withMessage('Token de verification invalide'),
+    body('email')
+      .isEmail()
+      .withMessage('Email invalide')
+      .normalizeEmail(),
+    body('code')
+      .matches(/^\d{6}$/)
+      .withMessage('Code de verification invalide'),
   ],
   validate,
-  authController.verifyEmail
+  authController.verifyEmail,
+  ] : [verificationDisabledResponse])
 );
 
 router.post(
-  '/resend-verification',
+  '/resend-code',
+  ...(env.EMAIL_VERIFICATION_ENABLED ? [
   [
     body('email')
       .isEmail()
@@ -56,7 +68,8 @@ router.post(
       .normalizeEmail(),
   ],
   validate,
-  authController.resendVerification
+  authController.resendCode,
+  ] : [verificationDisabledResponse])
 );
 
 router.get('/me', auth, authController.getMe);

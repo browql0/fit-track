@@ -1,5 +1,6 @@
 const authService = require('../services/authService');
 const { clearCsrfToken, issueCsrfToken } = require('../middleware/csrf');
+const env = require('../config/env');
 
 const getCookieOptions = () => ({
   httpOnly: true,
@@ -13,10 +14,19 @@ const register = async (req, res, next) => {
     const { email, password } = req.body;
     const result = await authService.register(email, password);
 
-    res.status(201).json({
-      message: 'Inscription reussie. Verifiez votre email pour activer votre compte.',
+    const responseBody = {
+      message: env.EMAIL_VERIFICATION_ENABLED
+        ? 'Inscription reussie. Verifiez votre email pour activer votre compte.'
+        : 'Inscription reussie',
       user: result.user,
-    });
+    };
+
+    if (result.token) {
+      responseBody.csrfToken = issueCsrfToken(res);
+      res.cookie('token', result.token, getCookieOptions());
+    }
+
+    res.status(201).json(responseBody);
   } catch (error) {
     next(error);
   }
@@ -56,22 +66,32 @@ const getMe = async (req, res, next) => {
 
     res.json({ user, csrfToken });
   } catch (error) {
+    if (error.errorCode === 'USER_NOT_FOUND') {
+      res.clearCookie('token', {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+      });
+      clearCsrfToken(res);
+      return res.status(401).json({ error: 'Session invalide. Veuillez vous reconnecter.' });
+    }
+
     next(error);
   }
 };
 
 const verifyEmail = async (req, res, next) => {
   try {
-    const result = await authService.verifyEmail(req.query.token);
+    const result = await authService.verifyEmail(req.body.email, req.body.code);
     res.json(result);
   } catch (error) {
     next(error);
   }
 };
 
-const resendVerification = async (req, res, next) => {
+const resendCode = async (req, res, next) => {
   try {
-    const result = await authService.resendVerification(req.body.email);
+    const result = await authService.resendCode(req.body.email);
     res.json(result);
   } catch (error) {
     next(error);
@@ -84,5 +104,5 @@ module.exports = {
   getMe,
   logout,
   verifyEmail,
-  resendVerification,
+  resendCode,
 };

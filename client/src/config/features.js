@@ -1,0 +1,1 @@
+export const EMAIL_VERIFICATION_ENABLED = import.meta.env.VITE_EMAIL_VERIFICATION_ENABLED === 'true';

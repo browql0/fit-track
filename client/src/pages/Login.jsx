@@ -2,6 +2,7 @@ import { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Flame, Lock, Mail, Eye, EyeOff, Zap, Target, Trophy, ChevronRight, RefreshCcw } from 'lucide-react';
 import { AuthContext } from '../context/authContext';
+import { EMAIL_VERIFICATION_ENABLED } from '../config/features';
 import { authService } from '../services/authService';
 import './Auth.css';
 
@@ -12,7 +13,6 @@ export const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [isEmailNotVerified, setIsEmailNotVerified] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
@@ -20,7 +20,6 @@ export const Login = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
-    setNotice('');
     setIsEmailNotVerified(false);
     setLoading(true);
     try {
@@ -28,7 +27,7 @@ export const Login = () => {
       navigate('/dashboard');
     } catch (err) {
       const code = err.response?.data?.code;
-      if (code === 'EMAIL_NOT_VERIFIED') {
+      if (EMAIL_VERIFICATION_ENABLED && code === 'EMAIL_NOT_VERIFIED') {
         setIsEmailNotVerified(true);
         setError('Votre email n est pas encore verifie.');
       } else {
@@ -40,14 +39,15 @@ export const Login = () => {
   };
 
   const handleResendVerification = async () => {
-    setNotice('');
+    if (!EMAIL_VERIFICATION_ENABLED) return;
+
     setResendLoading(true);
 
     try {
-      await authService.resendVerification(email);
-      setNotice('Si ce compte existe, un nouveau lien a ete envoye.');
+      await authService.resendCode(email);
+      navigate('/verify-email', { state: { email } });
     } catch {
-      setNotice('Si ce compte existe, un nouveau lien a ete envoye.');
+      navigate('/verify-email', { state: { email } });
     } finally {
       setResendLoading(false);
     }
@@ -91,8 +91,7 @@ export const Login = () => {
 
           {/* Error */}
           {error && <div className="auth-error">{error}</div>}
-          {notice && <div className="auth-success">{notice}</div>}
-          {isEmailNotVerified && (
+          {EMAIL_VERIFICATION_ENABLED && isEmailNotVerified && (
             <button
               className="auth-btn"
               type="button"
@@ -105,7 +104,7 @@ export const Login = () => {
               ) : (
                 <>
                   <RefreshCcw size={18} />
-                  Renvoyer le lien de verification
+                  Renvoyer le code de verification
                 </>
               )}
             </button>

@@ -1,7 +1,7 @@
 const { Resend } = require('resend');
 const env = require('../config/env');
 
-const resend = new Resend(env.RESEND_API_KEY);
+const resend = env.EMAIL_VERIFICATION_ENABLED ? new Resend(env.RESEND_API_KEY) : null;
 
 function escapeHtml(value) {
   return String(value || '')
@@ -12,13 +12,13 @@ function escapeHtml(value) {
     .replace(/'/g, '&#039;');
 }
 
-function buildVerificationUrl(token) {
-  const clientUrl = env.CLIENT_URL.replace(/\/$/, '');
-  return `${clientUrl}/verify-email?token=${encodeURIComponent(token)}`;
+function formatOtp(code) {
+  return String(code).replace(/(\d{3})(\d{3})/, '$1 $2');
 }
 
-function buildVerificationEmailHtml({ verifyUrl, displayName }) {
+function buildVerificationCodeEmailHtml({ code, displayName }) {
   const name = escapeHtml(displayName || 'athlete');
+  const formattedCode = escapeHtml(formatOtp(code));
 
   return `
 <!doctype html>
@@ -27,23 +27,19 @@ function buildVerificationEmailHtml({ verifyUrl, displayName }) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="dark">
-    <title>Verifier votre email FitTrack OS</title>
+    <title>Code de verification FitTrack OS</title>
     <style>
       @media only screen and (max-width: 620px) {
         .container { width: 100% !important; padding: 24px 16px !important; }
         .card { padding: 28px 20px !important; }
         .title { font-size: 30px !important; }
-        .cta { width: 100% !important; box-sizing: border-box !important; }
-      }
-      .cta:hover {
-        box-shadow: 0 0 32px rgba(0, 229, 255, 0.42), 0 0 48px rgba(140, 247, 101, 0.24) !important;
-        transform: translateY(-1px);
+        .otp { font-size: 42px !important; letter-spacing: 8px !important; }
       }
     </style>
   </head>
   <body style="margin:0;background:#050808;color:#f4fff9;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
-      Active votre compte FitTrack OS. Ce lien expire dans 24 heures.
+      Votre code FitTrack OS expire dans 15 minutes.
     </div>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:radial-gradient(circle at 18% 10%,rgba(0,229,255,.22),transparent 32%),radial-gradient(circle at 86% 20%,rgba(140,247,101,.18),transparent 30%),#050808;">
       <tr>
@@ -57,15 +53,15 @@ function buildVerificationEmailHtml({ verifyUrl, displayName }) {
                 <p style="margin:24px 0 8px;color:#8cf765;font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;">FitTrack OS</p>
                 <h1 class="title" style="margin:0;color:#f4fff9;font-size:40px;line-height:1.04;font-weight:900;letter-spacing:0;">Bienvenue, ${name}</h1>
                 <p style="margin:18px 0 0;color:#b8c8c7;font-size:17px;line-height:1.7;">
-                  Votre cockpit de performance est pret. Confirmez votre email pour activer votre compte, securiser vos donnees et lancer votre coaching IA.
+                  Entrez ce code dans FitTrack OS pour activer votre compte et lancer votre coaching IA.
                 </p>
               </td>
             </tr>
             <tr>
-              <td align="center" style="padding:34px 0 28px;">
-                <a class="cta" href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#8cf765,#00e5ff);color:#04100d;text-decoration:none;font-size:16px;font-weight:900;padding:17px 28px;border-radius:16px;box-shadow:0 0 24px rgba(0,229,255,.34),0 0 38px rgba(140,247,101,.2);transition:all .2s ease;">
-                  Verifier mon email
-                </a>
+              <td align="center" style="padding:34px 0 30px;">
+                <div class="otp" style="display:inline-block;padding:22px 26px;border-radius:20px;background:linear-gradient(135deg,rgba(140,247,101,.16),rgba(0,229,255,.12));border:1px solid rgba(140,247,101,.32);box-shadow:0 0 34px rgba(0,229,255,.24),0 0 52px rgba(140,247,101,.14);color:#f7fff9;font-size:54px;font-weight:900;letter-spacing:12px;line-height:1;font-family:'SFMono-Regular',Consolas,'Liberation Mono',monospace;">
+                  ${formattedCode}
+                </div>
               </td>
             </tr>
             <tr>
@@ -73,10 +69,8 @@ function buildVerificationEmailHtml({ verifyUrl, displayName }) {
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);padding:18px 0;">
                   <tr>
                     <td style="padding:18px 0;color:#dfffee;font-size:14px;line-height:1.7;">
-                      <strong style="color:#8cf765;">Lien valable 24h.</strong><br>
-                      Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :
-                      <br>
-                      <a href="${verifyUrl}" style="color:#00e5ff;word-break:break-all;text-decoration:none;">${verifyUrl}</a>
+                      <strong style="color:#8cf765;">Code valable 15 minutes.</strong><br>
+                      Pour votre securite, ne partagez jamais ce code. FitTrack OS ne vous le demandera que dans l'ecran de verification.
                     </td>
                   </tr>
                 </table>
@@ -93,16 +87,18 @@ function buildVerificationEmailHtml({ verifyUrl, displayName }) {
 </html>`;
 }
 
-async function sendVerificationEmail({ to, token, displayName }) {
-  const verifyUrl = buildVerificationUrl(token);
-  const subject = 'Confirmez votre email FitTrack OS';
+async function sendVerificationCodeEmail({ to, code, displayName }) {
+  if (!env.EMAIL_VERIFICATION_ENABLED) {
+    return { sent: false, disabled: true };
+  }
+
+  const subject = 'Votre code FitTrack OS';
   const text = [
     `Bienvenue ${displayName || 'sur FitTrack OS'}.`,
     '',
-    'Confirmez votre email pour activer votre compte :',
-    verifyUrl,
+    `Votre code de verification : ${formatOtp(code)}`,
     '',
-    'Ce lien expire dans 24 heures.',
+    'Ce code expire dans 15 minutes.',
     'Si vous n avez pas cree de compte FitTrack OS, ignorez ce message.',
   ].join('\n');
 
@@ -110,12 +106,12 @@ async function sendVerificationEmail({ to, token, displayName }) {
     from: env.EMAIL_FROM,
     to: [to],
     subject,
-    html: buildVerificationEmailHtml({ verifyUrl, displayName }),
+    html: buildVerificationCodeEmailHtml({ code, displayName }),
     text,
   });
 
   if (error) {
-    const sendError = new Error(error.message || 'Impossible d envoyer l email de verification');
+    const sendError = new Error(error.message || 'Impossible d envoyer le code de verification');
     sendError.statusCode = 502;
     sendError.details = error;
     throw sendError;
@@ -125,5 +121,5 @@ async function sendVerificationEmail({ to, token, displayName }) {
 }
 
 module.exports = {
-  sendVerificationEmail,
+  sendVerificationCodeEmail,
 };

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import { createPortal } from 'react-dom';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import './CustomDatePicker.css';
@@ -8,133 +8,168 @@ const parseDateValue = (value) => {
   return Number.isNaN(date.getTime()) ? new Date() : date;
 };
 
-export const CustomDatePicker = ({ value, onChange }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef(null);
-  const popupRef = useRef(null);
-  const [coords, setCoords] = useState({ top: 0, left: 0 });
+const monthNames = ['Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre'];
+const weekDays = ['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'];
 
-  const currentDate = parseDateValue(value);
-  
-  const [displayYear, setDisplayYear] = useState(currentDate.getFullYear());
-  const [displayMonth, setDisplayMonth] = useState(currentDate.getMonth());
+export class CustomDatePicker extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    const currentDate = parseDateValue(props.value);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        containerRef.current && !containerRef.current.contains(event.target) &&
-        popupRef.current && !popupRef.current.contains(event.target)
-      ) {
-        setIsOpen(false);
-      }
+    this.state = {
+      isOpen: false,
+      coords: { top: 0, left: 0 },
+      displayYear: currentDate.getFullYear(),
+      displayMonth: currentDate.getMonth(),
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
-  const toggleOpen = () => {
-    if (!isOpen && containerRef.current) {
-      setDisplayYear(currentDate.getFullYear());
-      setDisplayMonth(currentDate.getMonth());
-      const rect = containerRef.current.getBoundingClientRect();
-      // Right align popup with the trigger button
-      const popupWidth = 280; // from CSS
-      let left = rect.right - popupWidth;
-      if (left < 10) left = 10; // basic boundary safety
-      setCoords({
-        top: rect.bottom + window.scrollY + 8,
-        left: left,
+    this.containerRef = React.createRef();
+    this.popupRef = React.createRef();
+  }
+
+  componentDidMount() {
+    document.addEventListener('mousedown', this.handleClickOutside);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('mousedown', this.handleClickOutside);
+  }
+
+  handleClickOutside = (event) => {
+    if (
+      this.containerRef.current &&
+      !this.containerRef.current.contains(event.target) &&
+      this.popupRef.current &&
+      !this.popupRef.current.contains(event.target)
+    ) {
+      this.setState({ isOpen: false });
+    }
+  };
+
+  toggleOpen = () => {
+    const { isOpen } = this.state;
+    const currentDate = parseDateValue(this.props.value);
+
+    if (!isOpen && this.containerRef.current) {
+      const rect = this.containerRef.current.getBoundingClientRect();
+      const popupWidth = 280;
+      const left = Math.max(10, rect.right - popupWidth);
+
+      this.setState({
+        isOpen: true,
+        displayYear: currentDate.getFullYear(),
+        displayMonth: currentDate.getMonth(),
+        coords: {
+          top: rect.bottom + window.scrollY + 8,
+          left,
+        },
       });
+      return;
     }
-    setIsOpen(!isOpen);
+
+    this.setState({ isOpen: false });
   };
 
-  const daysInMonth = new Date(displayYear, displayMonth + 1, 0).getDate();
-  const firstDayOfMonth = new Date(displayYear, displayMonth, 1).getDay();
-  const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1; 
-
-  const handlePrevMonth = () => {
-    if (displayMonth === 0) {
-      setDisplayMonth(11);
-      setDisplayYear(y => y - 1);
-    } else {
-      setDisplayMonth(m => m - 1);
-    }
+  handlePrevMonth = () => {
+    this.setState(({ displayMonth, displayYear }) => {
+      if (displayMonth === 0) {
+        return { displayMonth: 11, displayYear: displayYear - 1 };
+      }
+      return { displayMonth: displayMonth - 1 };
+    });
   };
 
-  const handleNextMonth = () => {
-    if (displayMonth === 11) {
-      setDisplayMonth(0);
-      setDisplayYear(y => y + 1);
-    } else {
-      setDisplayMonth(m => m + 1);
-    }
+  handleNextMonth = () => {
+    this.setState(({ displayMonth, displayYear }) => {
+      if (displayMonth === 11) {
+        return { displayMonth: 0, displayYear: displayYear + 1 };
+      }
+      return { displayMonth: displayMonth + 1 };
+    });
   };
 
-  const handleSelectDate = (day) => {
+  handleSelectDate = (day) => {
+    const { displayYear, displayMonth } = this.state;
+    const { onChange } = this.props;
     const newDate = new Date(Date.UTC(displayYear, displayMonth, day));
     const yyyy = newDate.getUTCFullYear();
     const mm = String(newDate.getUTCMonth() + 1).padStart(2, '0');
     const dd = String(newDate.getUTCDate()).padStart(2, '0');
+
     if (onChange) {
       onChange({ target: { value: `${yyyy}-${mm}-${dd}` } });
     }
-    setIsOpen(false);
+
+    this.setState({ isOpen: false });
   };
 
-  const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
-  const weekDays = ["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"];
+  renderPopup() {
+    const { coords, displayYear, displayMonth } = this.state;
+    const currentDate = parseDateValue(this.props.value);
+    const daysInMonth = new Date(displayYear, displayMonth + 1, 0).getDate();
+    const firstDayOfMonth = new Date(displayYear, displayMonth, 1).getDay();
+    const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+    const today = new Date();
 
-  const displayDateText = `${currentDate.getDate().toString().padStart(2, '0')}/${(currentDate.getMonth() + 1).toString().padStart(2, '0')}/${currentDate.getFullYear()}`;
+    return (
+      <div className="custom-datepicker-popup" style={{ top: coords.top, left: coords.left }} ref={this.popupRef}>
+        <div className="datepicker-header">
+          <button type="button" className="datepicker-nav" onClick={this.handlePrevMonth}>
+            <ChevronLeft size={18} />
+          </button>
+          <strong>{monthNames[displayMonth]} {displayYear}</strong>
+          <button type="button" className="datepicker-nav" onClick={this.handleNextMonth}>
+            <ChevronRight size={18} />
+          </button>
+        </div>
 
-  const renderPopup = () => (
-    <div className="custom-datepicker-popup" style={{ top: coords.top, left: coords.left }} ref={popupRef}>
-      <div className="datepicker-header">
-        <button type="button" className="datepicker-nav" onClick={handlePrevMonth}><ChevronLeft size={18} /></button>
-        <strong>{monthNames[displayMonth]} {displayYear}</strong>
-        <button type="button" className="datepicker-nav" onClick={handleNextMonth}><ChevronRight size={18} /></button>
+        <div className="datepicker-grid datepicker-weekdays">
+          {weekDays.map((day) => <div key={day} className="datepicker-cell weekday">{day}</div>)}
+        </div>
+
+        <div className="datepicker-grid">
+          {Array.from({ length: startOffset }).map((_, index) => (
+            <div key={`empty-${index}`} className="datepicker-cell empty" />
+          ))}
+          {Array.from({ length: daysInMonth }).map((_, index) => {
+            const day = index + 1;
+            const isSelected = currentDate.getDate() === day && currentDate.getMonth() === displayMonth && currentDate.getFullYear() === displayYear;
+            const isToday = today.getDate() === day && today.getMonth() === displayMonth && today.getFullYear() === displayYear;
+
+            return (
+              <button
+                key={day}
+                type="button"
+                className={`datepicker-cell day ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}`}
+                onClick={() => this.handleSelectDate(day)}
+              >
+                {day}
+              </button>
+            );
+          })}
+        </div>
       </div>
-      
-      <div className="datepicker-grid datepicker-weekdays">
-        {weekDays.map(d => <div key={d} className="datepicker-cell weekday">{d}</div>)}
-      </div>
-      
-      <div className="datepicker-grid">
-        {Array.from({ length: startOffset }).map((_, i) => (
-          <div key={`empty-${i}`} className="datepicker-cell empty"></div>
-        ))}
-        {Array.from({ length: daysInMonth }).map((_, i) => {
-          const day = i + 1;
-          const isSelected = currentDate.getDate() === day && currentDate.getMonth() === displayMonth && currentDate.getFullYear() === displayYear;
-          const isToday = new Date().getDate() === day && new Date().getMonth() === displayMonth && new Date().getFullYear() === displayYear;
-          
-          return (
-            <button
-              key={day}
-              type="button"
-              className={`datepicker-cell day ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}`}
-              onClick={() => handleSelectDate(day)}
-            >
-              {day}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
+    );
+  }
 
-  return (
-    <div className="custom-datepicker-container" ref={containerRef}>
-      <button 
-        type="button"
-        className="custom-datepicker-trigger" 
-        onClick={toggleOpen}
-      >
-        <CalendarIcon size={16} />
-        <span>{displayDateText}</span>
-      </button>
+  render() {
+    const { isOpen } = this.state;
+    const currentDate = parseDateValue(this.props.value);
+    const displayDateText = `${String(currentDate.getDate()).padStart(2, '0')}/${String(currentDate.getMonth() + 1).padStart(2, '0')}/${currentDate.getFullYear()}`;
 
-      {isOpen && createPortal(renderPopup(), document.body)}
-    </div>
-  );
-};
+    return (
+      <div className="custom-datepicker-container" ref={this.containerRef}>
+        <button
+          type="button"
+          className="custom-datepicker-trigger"
+          onClick={this.toggleOpen}
+        >
+          <CalendarIcon size={16} />
+          <span>{displayDateText}</span>
+        </button>
+
+        {isOpen && createPortal(this.renderPopup(), document.body)}
+      </div>
+    );
+  }
+}

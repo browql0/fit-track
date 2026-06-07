@@ -24,6 +24,11 @@ const csrfCookieOptions = () => ({
   maxAge: 7 * 24 * 60 * 60 * 1000,
 });
 
+const clearCsrfCookieOptions = () => {
+  const { maxAge, ...options } = csrfCookieOptions();
+  return options;
+};
+
 const issueCsrfToken = (res) => {
   const token = createCsrfToken();
   res.cookie(CSRF_COOKIE, token, csrfCookieOptions());
@@ -31,7 +36,7 @@ const issueCsrfToken = (res) => {
 };
 
 const clearCsrfToken = (res) => {
-  res.clearCookie(CSRF_COOKIE, csrfCookieOptions());
+  res.clearCookie(CSRF_COOKIE, clearCsrfCookieOptions());
 };
 
 const csrfProtection = (req, res, next) => {

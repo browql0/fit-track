@@ -4,14 +4,18 @@ const path = require('path');
 // Charger .env depuis la racine du serveur
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+const emailVerificationEnabled = process.env.EMAIL_VERIFICATION_ENABLED === 'true';
+
 // Variables requises
 const requiredVars = [
   'DATABASE_URL',
   'JWT_SECRET',
-  'RESEND_API_KEY',
-  'EMAIL_FROM',
   'CLIENT_URL',
 ];
+
+if (emailVerificationEnabled) {
+  requiredVars.push('RESEND_API_KEY', 'EMAIL_FROM');
+}
 
 // Validation
 const missing = requiredVars.filter((key) => !process.env[key]);
@@ -38,6 +42,7 @@ const env = {
   CLIENT_URL: process.env.CLIENT_URL,
 
   // Email transactionnel
+  EMAIL_VERIFICATION_ENABLED: emailVerificationEnabled,
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   EMAIL_FROM: process.env.EMAIL_FROM,
 

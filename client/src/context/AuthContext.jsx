@@ -33,6 +33,10 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (email, password) => {
     const data = await authService.register(email, password);
+    if (data.user && data.csrfToken) {
+      setUser(data.user);
+      prefetchMainTabs();
+    }
     return data;
   };
 

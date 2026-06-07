@@ -4,12 +4,17 @@ const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const prisma = require('../config/prismaClient');
 const { recordActivity } = require('./activityService');
-const { sendVerificationEmail } = require('./emailService');
+const { sendVerificationCodeEmail } = require('./emailService');
 
 const SALT_ROUNDS = 12;
-const VERIFICATION_TOKEN_BYTES = 32;
-const VERIFICATION_TTL_HOURS = 24;
-const RESEND_COOLDOWN_MINUTES = 5;
+const OTP_TTL_MINUTES = 15;
+const OTP_MAX_ATTEMPTS = 5;
+const RESEND_COOLDOWN_SECONDS = 60;
+const RESEND_CODE_MESSAGE = 'Si ce compte existe, un code de verification a ete envoye.';
+const EMAIL_VERIFICATION_DISABLED_RESPONSE = {
+  success: true,
+  message: 'Email verification temporarily disabled',
+};
 
 function createError(message, statusCode, errorCode) {
   const error = new Error(message);
@@ -22,42 +27,45 @@ function normalizeEmail(email) {
   return String(email || '').toLowerCase().trim();
 }
 
-function hashVerificationToken(token) {
-  return crypto.createHash('sha256').update(String(token)).digest('hex');
+function normalizeCode(code) {
+  return String(code || '').replace(/\D/g, '').slice(0, 6);
 }
 
-function createVerificationToken() {
-  const rawToken = crypto.randomBytes(VERIFICATION_TOKEN_BYTES).toString('hex');
-
-  return {
-    rawToken,
-    tokenHash: hashVerificationToken(rawToken),
-    expiresAt: new Date(Date.now() + VERIFICATION_TTL_HOURS * 60 * 60 * 1000),
-  };
+function createVerificationCode() {
+  return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
 }
 
-async function createAndSendVerificationToken(user) {
-  const verification = createVerificationToken();
+function hashVerificationCode(code) {
+  return crypto.createHash('sha256').update(String(code)).digest('hex');
+}
+
+function isSameHash(a, b) {
+  const left = Buffer.from(String(a || ''), 'hex');
+  const right = Buffer.from(String(b || ''), 'hex');
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+async function createAndSendVerificationCode(user) {
+  const code = createVerificationCode();
+  const codeHash = hashVerificationCode(code);
+  const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
 
   await prisma.$transaction([
-    prisma.emailVerificationToken.deleteMany({
-      where: {
-        userId: user.id,
-        usedAt: null,
-      },
+    prisma.emailVerificationCode.deleteMany({
+      where: { userId: user.id },
     }),
-    prisma.emailVerificationToken.create({
+    prisma.emailVerificationCode.create({
       data: {
         userId: user.id,
-        tokenHash: verification.tokenHash,
-        expiresAt: verification.expiresAt,
+        code: codeHash,
+        expiresAt,
       },
     }),
   ]);
 
-  await sendVerificationEmail({
+  await sendVerificationCodeEmail({
     to: user.email,
-    token: verification.rawToken,
+    code,
     displayName: user.profile?.name,
   });
 }
@@ -77,7 +85,7 @@ async function register(email, password) {
     data: {
       email: normalizedEmail,
       passwordHash,
-      emailVerified: false,
+      emailVerified: !env.EMAIL_VERIFICATION_ENABLED,
     },
     select: {
       id: true,
@@ -91,11 +99,15 @@ async function register(email, password) {
     },
   });
 
-  await createAndSendVerificationToken(user);
+  if (env.EMAIL_VERIFICATION_ENABLED) {
+    await createAndSendVerificationCode(user);
+  }
+
   await recordActivity(user.id, 'register');
 
   const { profile, ...publicUser } = user;
-  return { user: publicUser };
+  const token = env.EMAIL_VERIFICATION_ENABLED ? null : generateToken(user);
+  return { user: publicUser, token };
 }
 
 async function login(email, password) {
@@ -116,9 +128,9 @@ async function login(email, password) {
     throw createError('Email ou mot de passe incorrect', 401, 'INVALID_CREDENTIALS');
   }
 
-  if (!user.emailVerified) {
+  if (env.EMAIL_VERIFICATION_ENABLED && !user.emailVerified) {
     throw createError(
-      'Votre email doit etre verifie avant de vous connecter. Consultez votre boite mail ou demandez un nouveau lien.',
+      'Votre email doit etre verifie avant de vous connecter. Entrez le code recu par email ou demandez un nouveau code.',
       403,
       'EMAIL_NOT_VERIFIED'
     );
@@ -127,11 +139,7 @@ async function login(email, password) {
   const token = generateToken(user);
   await recordActivity(user.id, 'login');
 
-  const {
-    passwordHash,
-    ...userWithoutPrivateFields
-  } = user;
-
+  const { passwordHash, ...userWithoutPrivateFields } = user;
   return { user: userWithoutPrivateFields, token };
 }
 
@@ -155,61 +163,78 @@ async function getMe(userId) {
   return user;
 }
 
-async function verifyEmail(token) {
-  const rawToken = String(token || '').trim();
-  if (!rawToken) {
-    throw createError('Lien de verification invalide ou expire', 400, 'INVALID_VERIFICATION_TOKEN');
+async function verifyEmail(email, code) {
+  if (!env.EMAIL_VERIFICATION_ENABLED) {
+    return EMAIL_VERIFICATION_DISABLED_RESPONSE;
   }
 
-  const tokenHash = hashVerificationToken(rawToken);
-  const verification = await prisma.emailVerificationToken.findUnique({
-    where: { tokenHash },
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedCode = normalizeCode(code);
+
+  if (!normalizedEmail || normalizedCode.length !== 6) {
+    throw createError('Code de verification invalide', 400, 'INVALID_VERIFICATION_CODE');
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
     include: {
-      user: {
-        select: {
-          id: true,
-          emailVerified: true,
-        },
-      },
+      emailVerificationCode: true,
     },
   });
 
-  if (!verification || verification.usedAt || verification.expiresAt <= new Date()) {
-    throw createError('Lien de verification invalide ou expire', 400, 'INVALID_VERIFICATION_TOKEN');
+  if (!user || user.emailVerified) {
+    throw createError('Code de verification invalide ou expire', 400, 'INVALID_VERIFICATION_CODE');
+  }
+
+  const verification = user.emailVerificationCode;
+  if (!verification || verification.expiresAt <= new Date()) {
+    if (verification) {
+      await prisma.emailVerificationCode.delete({ where: { id: verification.id } });
+    }
+    throw createError('Code de verification invalide ou expire', 400, 'INVALID_VERIFICATION_CODE');
+  }
+
+  if (verification.attempts >= OTP_MAX_ATTEMPTS) {
+    await prisma.emailVerificationCode.delete({ where: { id: verification.id } });
+    throw createError('Trop de tentatives. Demandez un nouveau code.', 429, 'OTP_ATTEMPTS_EXCEEDED');
+  }
+
+  const codeHash = hashVerificationCode(normalizedCode);
+  if (!isSameHash(codeHash, verification.code)) {
+    if (verification.attempts + 1 >= OTP_MAX_ATTEMPTS) {
+      await prisma.emailVerificationCode.delete({ where: { id: verification.id } });
+      throw createError('Trop de tentatives. Demandez un nouveau code.', 429, 'OTP_ATTEMPTS_EXCEEDED');
+    }
+
+    await prisma.emailVerificationCode.update({
+      where: { id: verification.id },
+      data: { attempts: { increment: 1 } },
+    });
+    throw createError('Code de verification invalide ou expire', 400, 'INVALID_VERIFICATION_CODE');
   }
 
   await prisma.$transaction([
-    prisma.emailVerificationToken.update({
-      where: { id: verification.id },
-      data: { usedAt: new Date() },
-    }),
-    prisma.emailVerificationToken.deleteMany({
-      where: {
-        userId: verification.userId,
-        id: { not: verification.id },
-        usedAt: null,
-      },
-    }),
     prisma.user.update({
-      where: { id: verification.userId },
-      data: {
-        emailVerified: true,
-      },
+      where: { id: user.id },
+      data: { emailVerified: true },
+    }),
+    prisma.emailVerificationCode.delete({
+      where: { id: verification.id },
     }),
   ]);
 
-  if (!verification.user.emailVerified) {
-    await recordActivity(verification.userId, 'email_verified');
-  }
+  await recordActivity(user.id, 'email_verified');
 
   return { message: 'Email confirme avec succes. Vous pouvez maintenant vous connecter.' };
 }
 
-async function resendVerification(email) {
+async function resendCode(email) {
+  if (!env.EMAIL_VERIFICATION_ENABLED) {
+    return EMAIL_VERIFICATION_DISABLED_RESPONSE;
+  }
+
   const normalizedEmail = normalizeEmail(email);
-  const response = {
-    message: 'Si un compte non confirme existe, un nouvel email de verification sera envoye.',
-  };
+  const response = { message: RESEND_CODE_MESSAGE };
 
   if (!normalizedEmail) return response;
 
@@ -219,23 +244,24 @@ async function resendVerification(email) {
       profile: {
         select: { name: true },
       },
-      emailVerificationTokens: {
-        where: { usedAt: null },
-        orderBy: { createdAt: 'desc' },
-        take: 1,
-      },
+      emailVerificationCode: true,
     },
   });
 
   if (!user || user.emailVerified) return response;
 
-  const latestToken = user.emailVerificationTokens[0];
-  const cooldownDate = new Date(Date.now() - RESEND_COOLDOWN_MINUTES * 60 * 1000);
-  if (latestToken && latestToken.createdAt > cooldownDate) {
+  const latestCode = user.emailVerificationCode;
+  const cooldownDate = new Date(Date.now() - RESEND_COOLDOWN_SECONDS * 1000);
+  if (latestCode && latestCode.createdAt > cooldownDate) {
     return response;
   }
 
-  await createAndSendVerificationToken(user);
+  try {
+    await createAndSendVerificationCode(user);
+  } catch (error) {
+    console.error('[auth] Failed to resend verification code:', error.message);
+  }
+
   return response;
 }
 
@@ -256,5 +282,5 @@ module.exports = {
   login,
   getMe,
   verifyEmail,
-  resendVerification,
+  resendCode,
 };

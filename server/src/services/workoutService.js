@@ -38,6 +38,10 @@ async function getWorkoutsByDate(userId, dateStr) {
     orderBy: { createdAt: 'asc' },
   });
 
+  if (workouts.length === 0) {
+    return [];
+  }
+
   const weightKg = await getUserWeight(userId);
 
   return workouts.map(workout => ({
@@ -151,6 +155,14 @@ async function getWeeklySummary(userId) {
     },
     include: { exercise: true },
   });
+
+  if (workouts.length === 0) {
+    return {
+      totalWorkouts: 0,
+      totalDurationMinutes: 0,
+      totalCaloriesBurned: 0,
+    };
+  }
 
   const weightKg = await getUserWeight(userId);
 

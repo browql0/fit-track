@@ -9,6 +9,7 @@ import { CheckEmailPage } from '../pages/CheckEmailPage';
 import { VerifyEmailPage } from '../pages/VerifyEmailPage';
 import { ProfileSetup } from '../pages/ProfileSetup';
 import { Dashboard } from '../pages/Dashboard';
+import { EMAIL_VERIFICATION_ENABLED } from '../config/features';
 
 import { Nutrition } from '../pages/Nutrition';
 import { Workouts } from '../pages/Workouts';
@@ -44,8 +45,12 @@ export const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-      <Route path="/check-email" element={<PublicRoute><CheckEmailPage /></PublicRoute>} />
-      <Route path="/verify-email" element={<PublicRoute><VerifyEmailPage /></PublicRoute>} />
+      {EMAIL_VERIFICATION_ENABLED && (
+        <>
+          <Route path="/check-email" element={<PublicRoute><CheckEmailPage /></PublicRoute>} />
+          <Route path="/verify-email" element={<PublicRoute><VerifyEmailPage /></PublicRoute>} />
+        </>
+      )}
       <Route path="/profile/setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
       
       {/* Protected routes wrapped in AppLayout */}

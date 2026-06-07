@@ -47,24 +47,23 @@ model User {
   customFoods      Food[]           @relation("FoodCreator")
   mealTemplates    MealTemplate[]
   favoriteFoods    FavoriteFood[]
-  emailVerificationTokens EmailVerificationToken[]
+  emailVerificationCode EmailVerificationCode?
 
   @@map("users")
 }
 
-model EmailVerificationToken {
-  id        Int       @id @default(autoincrement())
-  userId    Int       @map("user_id")
-  tokenHash String    @unique @map("token_hash") @db.VarChar(64)
-  expiresAt DateTime  @map("expires_at")
-  usedAt    DateTime? @map("used_at")
-  createdAt DateTime  @default(now()) @map("created_at")
+model EmailVerificationCode {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  code      String   @db.VarChar(64)
+  attempts  Int      @default(0)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@index([expiresAt])
-  @@map("email_verification_tokens")
+  @@map("email_verification_codes")
 }
 
 // ═══════════════════════════════════════

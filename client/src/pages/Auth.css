@@ -386,6 +386,83 @@
   animation: spin 680ms linear infinite;
 }
 
+.auth-secondary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 50px;
+  padding: 0 20px;
+  color: var(--auth-text);
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 16px;
+  font-size: 0.92rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 220ms ease;
+}
+
+.auth-secondary-btn:hover {
+  border-color: rgba(71, 214, 255, 0.34);
+  background: rgba(71, 214, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.auth-secondary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auth-secondary-btn .spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.22);
+  border-top-color: var(--lime);
+  border-radius: 50%;
+  animation: spin 680ms linear infinite;
+}
+
+.auth-otp-wrap {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.auth-otp-input {
+  width: 100%;
+  aspect-ratio: 0.78;
+  min-height: 54px;
+  color: var(--auth-text);
+  text-align: center;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.04)),
+    rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  outline: none;
+  font-family: 'Rajdhani', 'Inter', sans-serif;
+  font-size: 1.85rem;
+  font-weight: 900;
+  line-height: 1;
+  caret-color: var(--lime);
+  transition: transform 180ms ease, border-color 220ms ease, box-shadow 220ms ease, background 220ms ease;
+}
+
+.auth-otp-input:focus {
+  background: rgba(183, 255, 86, 0.09);
+  border-color: rgba(183, 255, 86, 0.55);
+  box-shadow: 0 0 0 4px rgba(183, 255, 86, 0.1), 0 0 30px rgba(71, 214, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+.auth-otp-input:disabled {
+  opacity: 0.7;
+}
+
 /* ---------- DIVIDER ---------- */
 .auth-divider {
   display: flex;
@@ -655,6 +732,18 @@
 
   .auth-title {
     font-size: 2.4rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .auth-otp-wrap {
+    gap: 6px;
+  }
+
+  .auth-otp-input {
+    min-height: 48px;
+    border-radius: 14px;
+    font-size: 1.55rem;
   }
 }
 

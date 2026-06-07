@@ -74,9 +74,7 @@ async function updateProfile(userId, profileData) {
   const existing = await prisma.profile.findUnique({ where: { userId } });
 
   if (!existing) {
-    const error = new Error('Profil introuvable.');
-    error.statusCode = 404;
-    throw error;
+    return createProfile(userId, safeData);
   }
 
   const result = await prisma.$transaction(async (tx) => {

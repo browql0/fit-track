@@ -2,6 +2,7 @@ import { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Flame, Lock, Mail, Eye, EyeOff, Shield, Dumbbell, Heart, ChevronRight } from 'lucide-react';
 import { AuthContext } from '../context/authContext';
+import { EMAIL_VERIFICATION_ENABLED } from '../config/features';
 import './Auth.css';
 
 export const Register = () => {
@@ -25,7 +26,9 @@ export const Register = () => {
     setLoading(true);
     try {
       await register(email, password);
-      navigate('/check-email', { state: { email } });
+      navigate(EMAIL_VERIFICATION_ENABLED ? '/verify-email' : '/dashboard', {
+        state: EMAIL_VERIFICATION_ENABLED ? { email } : undefined,
+      });
     } catch (err) {
       setError(err.response?.data?.error || 'Echec de l\'inscription.');
     } finally {

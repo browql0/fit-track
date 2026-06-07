@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Flame, MailCheck, RefreshCcw, Mail } from 'lucide-react';
 import { authService } from '../services/authService';
 import './Auth.css';
 
 export const CheckEmailPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [email, setEmail] = useState(location.state?.email || '');
   const [message, setMessage] = useState('Si ce compte existe, un lien de verification a ete envoye.');
   const [error, setError] = useState('');
@@ -18,13 +19,14 @@ export const CheckEmailPage = () => {
     setLoading(true);
 
     try {
-      const result = await authService.resendVerification(email);
-      setMessage(result.message || 'Si ce compte existe, un nouveau lien a ete envoye.');
+      await authService.resendCode(email);
+      setMessage('Si ce compte existe, un code de verification a ete envoye.');
+      navigate('/verify-email', { state: { email } });
     } catch (err) {
       if (err.response?.status === 400) {
         setError(err.response?.data?.error || 'Email invalide.');
       } else {
-        setMessage('Si ce compte existe, un nouveau lien a ete envoye.');
+        setMessage('Si ce compte existe, un code de verification a ete envoye.');
       }
     } finally {
       setLoading(false);
@@ -61,7 +63,7 @@ export const CheckEmailPage = () => {
             </span>
             <h1 className="auth-title">Verifie ta boite mail</h1>
             <p className="auth-subtitle">
-              Saisis ton email pour recevoir un nouveau lien de verification si ton compte n est pas encore active.
+              Saisis ton email pour recevoir un nouveau code de verification si ton compte n est pas encore active.
             </p>
           </div>
 
@@ -92,7 +94,7 @@ export const CheckEmailPage = () => {
               ) : (
                 <>
                   <RefreshCcw size={18} />
-                  Renvoyer l'email
+                  Renvoyer le code
                 </>
               )}
             </button>
