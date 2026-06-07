@@ -12,6 +12,8 @@ router.get('/', foodController.searchFoods);
 
 router.get('/external-search', foodController.externalSearch);
 
+router.get('/barcode/:barcode', foodController.getFoodByBarcode);
+
 router.post(
   '/estimate',
   [

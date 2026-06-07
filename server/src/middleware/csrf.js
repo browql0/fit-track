@@ -4,6 +4,10 @@ const env = require('../config/env');
 const CSRF_COOKIE = 'csrfToken';
 const CSRF_HEADER = 'x-csrf-token';
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const CSRF_EXEMPT_READ_POSTS = new Set([
+  '/api/recipes/match-ingredients',
+  '/api/recipes/generate',
+]);
 
 const getCookieValue = (cookieHeader, name) => {
   if (!cookieHeader) return null;
@@ -42,6 +46,9 @@ const clearCsrfToken = (res) => {
 
 const csrfProtection = (req, res, next) => {
   if (SAFE_METHODS.has(req.method)) return next();
+  if (req.method === 'POST' && CSRF_EXEMPT_READ_POSTS.has(req.originalUrl.split('?')[0])) {
+    return next();
+  }
 
   const cookieToken = getCookieValue(req.headers.cookie, CSRF_COOKIE);
   const headerToken = req.headers[CSRF_HEADER];

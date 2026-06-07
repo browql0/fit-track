@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navbar } from '../components/navigation/Navbar';
 import { BottomNav } from '../components/navigation/BottomNav';
+import { BarcodeScannerModal } from '../components/nutrition/BarcodeScannerModal';
 import './AppLayout.css';
 
 export const AppLayout = () => {
@@ -24,6 +25,7 @@ export const AppLayout = () => {
           </motion.div>
         </AnimatePresence>
       </main>
+      <BarcodeScannerModal />
       <BottomNav />
     </div>
   );

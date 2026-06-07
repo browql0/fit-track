@@ -29,6 +29,7 @@ const register = async (req, res, next) => {
 
     if (result.token) {
       responseBody.csrfToken = issueCsrfToken(res);
+      responseBody.token = result.token;
       res.cookie('token', result.token, getCookieOptions());
     }
 
@@ -48,6 +49,7 @@ const login = async (req, res, next) => {
     res.json({
       message: 'Connexion reussie',
       user: result.user,
+      token: result.token,
       csrfToken,
     });
   } catch (error) {

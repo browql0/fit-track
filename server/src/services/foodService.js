@@ -2,7 +2,7 @@ const prisma = require('../config/prismaClient');
 const { parseDateOnly } = require('../utils/dateUtils');
 const { invalidateCoachCache } = require('./coachSnapshotService');
 
-const FOOD_CATEGORIES = ['protein', 'grain', 'vegetable', 'fruit', 'dairy', 'fat', 'other'];
+const FOOD_CATEGORIES = ['protein', 'grain', 'vegetable', 'fruit', 'dairy', 'fat', 'other', 'scanned'];
 
 const clampNumber = (value, min, max) => Math.min(max, Math.max(min, Number(value || 0)));
 const roundMacro = (value) => Math.round(clampNumber(value, 0, 100) * 10) / 10;
@@ -11,6 +11,12 @@ const roundCalories = (value) => Math.round(clampNumber(value, 0, 1000));
 function createError(message, statusCode) {
   const err = new Error(message);
   err.statusCode = statusCode;
+  return err;
+}
+
+function createCodedError(message, statusCode, errorCode) {
+  const err = createError(message, statusCode);
+  err.errorCode = errorCode;
   return err;
 }
 
@@ -106,6 +112,100 @@ function mapOpenFoodFactsProduct(product) {
     carbsPer100g: carbs,
     fatPer100g: fat,
     category: inferCategoryFromText(`${name} ${product.categories || ''}`),
+  });
+}
+
+function normalizeBarcode(value) {
+  return String(value || '').trim().replace(/\D/g, '');
+}
+
+function mapOpenFoodFactsBarcodeProduct(product, barcode) {
+  const nutriments = product.nutriments || {};
+  const name = product.product_name || product.product_name_fr || product.product_name_en;
+  const calories = nutriments['energy-kcal_100g'] ?? (nutriments.energy_100g ? nutriments.energy_100g / 4.184 : null);
+  const protein = nutriments.proteins_100g;
+  const carbs = nutriments.carbohydrates_100g;
+  const fat = nutriments.fat_100g;
+
+  if (!name || calories === null || protein === undefined || carbs === undefined || fat === undefined) {
+    return null;
+  }
+
+  return {
+    ...normalizeFoodPayload({
+      name,
+      caloriesPer100g: calories,
+      proteinPer100g: protein,
+      carbsPer100g: carbs,
+      fatPer100g: fat,
+      category: 'scanned',
+    }),
+    barcode,
+    brand: product.brands ? String(product.brands).slice(0, 255) : null,
+    imageUrl: product.image_url || null,
+    source: 'openfoodfacts',
+  };
+}
+
+async function fetchOpenFoodFactsBarcode(barcode) {
+  const url = new URL(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`);
+  url.searchParams.set('fields', 'status,product_name,product_name_fr,product_name_en,brands,image_url,nutriments');
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  let response;
+
+  try {
+    response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'FitTrack/1.0 (contact: dev@fittrack.local)',
+      },
+    });
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw createError('Recherche produit trop lente', 502);
+    }
+    throw createError('Recherche produit indisponible', 502);
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response.ok) {
+    throw createError('Recherche produit indisponible', 502);
+  }
+
+  return response.json();
+}
+
+async function getFoodByBarcode(barcodeValue) {
+  const barcode = normalizeBarcode(barcodeValue);
+  if (!barcode || barcode.length < 6 || barcode.length > 32) {
+    throw createCodedError('Code-barres invalide', 400, 'INVALID_BARCODE');
+  }
+
+  const existing = await prisma.food.findUnique({
+    where: { barcode },
+  });
+
+  if (existing) return existing;
+
+  const payload = await fetchOpenFoodFactsBarcode(barcode);
+  if (payload.status !== 1 || !payload.product) {
+    throw createCodedError('Produit introuvable', 404, 'PRODUCT_NOT_FOUND');
+  }
+
+  const food = mapOpenFoodFactsBarcodeProduct(payload.product, barcode);
+  if (!food) {
+    throw createCodedError('Produit introuvable ou nutrition incomplete', 404, 'PRODUCT_NOT_FOUND');
+  }
+
+  return prisma.food.create({
+    data: {
+      ...food,
+      createdBy: null,
+      isPublic: true,
+    },
   });
 }
 
@@ -307,6 +407,7 @@ async function getDailySummary(userId, dateStr) {
 module.exports = {
   searchFoods,
   getFoodById,
+  getFoodByBarcode,
   createCustomFood,
   externalSearchAndImport,
   estimateFood,

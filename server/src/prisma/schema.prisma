@@ -47,6 +47,8 @@ model User {
   customFoods      Food[]           @relation("FoodCreator")
   mealTemplates    MealTemplate[]
   favoriteFoods    FavoriteFood[]
+  createdRecipes   Recipe[]         @relation("RecipeCreator")
+  savedRecipes     UserSavedRecipe[]
   emailVerificationCode EmailVerificationCode?
 
   @@map("users")
@@ -105,6 +107,10 @@ model Food {
   fatPer100g      Float    @map("fat_per_100g")
   category        String   @db.VarChar(50)
   // 'protein' | 'carbs' | 'fat' | 'dairy' | 'fruit' | 'vegetable' | 'grain' | 'other'
+  barcode         String?  @unique @db.VarChar(64)
+  brand           String?  @db.VarChar(255)
+  imageUrl        String?  @map("image_url") @db.Text
+  source          String?  @db.VarChar(50)
   createdBy       Int?     @map("created_by")
   isPublic        Boolean  @default(false) @map("is_public")
   createdAt       DateTime @default(now()) @map("created_at")
@@ -137,6 +143,64 @@ model FoodEntry {
 
   @@index([userId, entryDate])
   @@map("food_entries")
+}
+
+model Recipe {
+  id              Int      @id @default(autoincrement())
+  title           String   @db.VarChar(255)
+  description     String   @db.Text
+  category        String   @db.VarChar(50)
+  prepTimeMinutes Int      @map("prep_time_minutes")
+  calories        Int
+  proteinG        Float    @map("protein_g")
+  carbsG          Float    @map("carbs_g")
+  fatG            Float    @map("fat_g")
+  difficulty      String   @db.VarChar(30)
+  tags            Json
+  instructions    Json
+  tips            Json?
+  alternatives    Json?
+  mistakesToAvoid Json?    @map("mistakes_to_avoid")
+  mealPrepAdvice  Json?    @map("meal_prep_advice")
+  isPublic        Boolean  @default(true) @map("is_public")
+  createdBy       Int?     @map("created_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  creator     User?              @relation("RecipeCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  ingredients RecipeIngredient[]
+  savedBy     UserSavedRecipe[]
+
+  @@index([category])
+  @@index([isPublic])
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id       Int    @id @default(autoincrement())
+  recipeId Int    @map("recipe_id")
+  name     String @db.VarChar(120)
+  quantity Float?
+  unit     String @db.VarChar(30)
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId])
+  @@map("recipe_ingredients")
+}
+
+model UserSavedRecipe {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  recipeId  Int      @map("recipe_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId])
+  @@index([userId])
+  @@index([recipeId])
+  @@map("user_saved_recipes")
 }
 
 // ═══════════════════════════════════════

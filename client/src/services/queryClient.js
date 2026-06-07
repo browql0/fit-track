@@ -19,6 +19,7 @@ export const queryKeys = {
   nutrition: (date) => ['nutrition', date],
   profile: ['profile'],
   progress: ['progress'],
+  recipes: ['recipes'],
   weight: ['weight'],
   workouts: (date) => ['workouts', date],
 };

@@ -39,6 +39,15 @@ const getFoodById = async (req, res, next) => {
   }
 };
 
+const getFoodByBarcode = async (req, res, next) => {
+  try {
+    const food = await foodService.getFoodByBarcode(req.params.barcode);
+    res.json(food);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const createCustomFood = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -130,6 +139,7 @@ const deleteFoodEntry = async (req, res, next) => {
 module.exports = {
   searchFoods,
   getFoodById,
+  getFoodByBarcode,
   createCustomFood,
   externalSearch,
   estimateFood,

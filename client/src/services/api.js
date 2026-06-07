@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 const csrfStorageKey = 'fittrack-csrf-token';
+const authStorageKey = 'fittrack-auth-token';
 let csrfToken = sessionStorage.getItem(csrfStorageKey) || '';
+let authToken = sessionStorage.getItem(authStorageKey) || localStorage.getItem(authStorageKey) || '';
 
 const getCookie = (name) => {
   const cookie = document.cookie
@@ -29,6 +31,18 @@ export const setCsrfToken = (token) => {
   }
 };
 
+export const setAuthToken = (token) => {
+  authToken = token || '';
+
+  if (authToken) {
+    sessionStorage.setItem(authStorageKey, authToken);
+    localStorage.setItem(authStorageKey, authToken);
+  } else {
+    sessionStorage.removeItem(authStorageKey);
+    localStorage.removeItem(authStorageKey);
+  }
+};
+
 const api = axios.create({
   baseURL,
   withCredentials: true,
@@ -37,10 +51,48 @@ const api = axios.create({
   },
 });
 
+const csrfBootstrapApi = axios.create({
+  baseURL,
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+let csrfRefreshPromise = null;
+
+const refreshCsrfToken = async () => {
+  if (!csrfRefreshPromise) {
+    csrfRefreshPromise = csrfBootstrapApi
+      .get('/auth/me', {
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      })
+      .then((response) => {
+        if (response.data?.csrfToken) {
+          setCsrfToken(response.data.csrfToken);
+        }
+        return response.data?.csrfToken || getCookie('csrfToken') || '';
+      })
+      .finally(() => {
+        csrfRefreshPromise = null;
+      });
+  }
+
+  return csrfRefreshPromise;
+};
+
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    if (authToken && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${authToken}`;
+    }
+
     if (unsafeMethods.has(String(config.method).toLowerCase())) {
-      const requestCsrfToken = csrfToken || getCookie('csrfToken');
+      let requestCsrfToken = getCookie('csrfToken');
+      if (!requestCsrfToken && !config.skipCsrfRefresh) {
+        requestCsrfToken = await refreshCsrfToken();
+      }
+      requestCsrfToken = getCookie('csrfToken') || requestCsrfToken || csrfToken;
       if (requestCsrfToken) {
         config.headers['x-csrf-token'] = requestCsrfToken;
       }
@@ -53,14 +105,31 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
+    if (response.data?.token) {
+      setAuthToken(response.data.token);
+    }
+
     if (response.data?.csrfToken) {
       setCsrfToken(response.data.csrfToken);
     }
 
     return response;
   },
-  (error) => {
+  async (error) => {
     const status = error.response?.status;
+    const originalRequest = error.config;
+    const csrfInvalid = status === 403 && error.response?.data?.error === 'Protection CSRF invalide';
+
+    if (csrfInvalid && originalRequest && !originalRequest._csrfRetry) {
+      originalRequest._csrfRetry = true;
+      try {
+        await refreshCsrfToken();
+        return api(originalRequest);
+      } catch {
+        // Fall through to the normal auth/error handling below.
+      }
+    }
+
     if (status === 401 || status === 403) {
       console.warn(`[auth] ${status} ${error.config?.method?.toUpperCase() || 'GET'} ${error.config?.url}`, error.response?.data);
     }

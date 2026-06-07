@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import './Modal.css';
 
-export const Modal = ({ isOpen, onClose, title, children }) => {
+export const Modal = ({ isOpen, onClose, title, children, className = '', overlayClassName = '' }) => {
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
@@ -25,9 +25,9 @@ export const Modal = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="modal-overlay fade-in" onClick={onClose}>
+    <div className={`modal-overlay fade-in ${overlayClassName}`.trim()} onClick={onClose}>
       <div 
-        className="modal-content slide-up" 
+        className={`modal-content slide-up ${className}`.trim()} 
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

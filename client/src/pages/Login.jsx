@@ -24,8 +24,8 @@ export const Login = () => {
     setIsEmailNotVerified(false);
     setLoading(true);
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      const data = await login(email, password);
+      navigate(data.user?.profile ? '/dashboard' : '/profile/setup');
     } catch (err) {
       const code = err.response?.data?.code;
       if (EMAIL_VERIFICATION_ENABLED && code === 'EMAIL_NOT_VERIFIED') {

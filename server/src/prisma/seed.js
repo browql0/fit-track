@@ -4,6 +4,7 @@
 
 const { PrismaClient } = require('@prisma/client');
 const { EXERCISE_MET_VALUES, SEED_FOODS } = require('../utils/constants');
+const { seedRecipes } = require('./seedRecipes');
 
 const prisma = new PrismaClient();
 
@@ -48,6 +49,10 @@ async function main() {
     }
   }
   console.log(`   ✅ ${SEED_FOODS.length} foods seeded.\n`);
+
+  console.log('Seeding recipes...');
+  const recipeCount = await seedRecipes(prisma);
+  console.log(`   ${recipeCount} recipes seeded.\n`);
 
   console.log(' Seeding complete!');
 }

@@ -2,7 +2,7 @@ import { useContext } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Activity, BarChart3, Bell, Dumbbell, Home, LogOut, 
-  Moon, Settings, Sparkles, Sun, Target, UtensilsCrossed, 
+  BookOpen, Moon, Settings, Sparkles, Sun, Target, UtensilsCrossed, 
   User, Flame, Zap, ChevronRight
 } from 'lucide-react';
 import { AuthContext } from '../../context/authContext';
@@ -34,6 +34,7 @@ export const Navbar = () => {
       items: [
         { to: '/dashboard', label: "Aujourd'hui", icon: Home },
         { to: '/nutrition', label: 'Nutrition', icon: UtensilsCrossed },
+        { to: '/recipes', label: 'Recettes', icon: BookOpen },
         { to: '/workouts', label: 'Entraînement', icon: Dumbbell },
       ]
     },

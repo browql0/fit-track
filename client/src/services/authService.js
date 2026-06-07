@@ -1,4 +1,4 @@
-import api, { setCsrfToken } from './api';
+import api, { setAuthToken, setCsrfToken } from './api';
 
 export const authService = {
   async register(email, password) {
@@ -22,6 +22,7 @@ export const authService = {
     } catch {
       // Keep local cleanup even when the server is unavailable.
     }
+    setAuthToken('');
     setCsrfToken('');
   },
 

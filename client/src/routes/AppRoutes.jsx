@@ -12,6 +12,7 @@ import { Dashboard } from '../pages/Dashboard';
 import { EMAIL_VERIFICATION_ENABLED } from '../config/features';
 
 import { Nutrition } from '../pages/Nutrition';
+import { Recipes } from '../pages/Recipes';
 import { Workouts } from '../pages/Workouts';
 import { Tracking } from '../pages/Tracking';
 import { Profile } from '../pages/Profile';
@@ -57,6 +58,7 @@ export const AppRoutes = () => {
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/nutrition" element={<Nutrition />} />
+        <Route path="/recipes" element={<Recipes />} />
         <Route path="/workouts" element={<Workouts />} />
         <Route path="/progress" element={<Tracking />} />
         <Route path="/tracking" element={<Tracking />} />

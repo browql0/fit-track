@@ -12,7 +12,16 @@ const getCookieValue = (cookieHeader, name) => {
 };
 
 const getRequestToken = (req) => {
-  return getCookieValue(req.headers.cookie, 'token');
+  const cookieToken = getCookieValue(req.headers.cookie, 'token');
+  if (cookieToken) return cookieToken;
+
+  const authHeader = req.headers.authorization || '';
+  const [scheme, token] = authHeader.split(' ');
+  if (scheme?.toLowerCase() === 'bearer' && token) {
+    return token;
+  }
+
+  return null;
 };
 
 const auth = (req, res, next) => {

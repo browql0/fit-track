@@ -31,8 +31,18 @@ const authLimiter = rateLimit({
 });
 
 // ─── Middlewares globaux ───
+const isAllowedDevOrigin = (origin) => {
+  if (!env.isDev || !origin) return false;
+  return /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\]|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(origin);
+};
+
 app.use(cors({
-  origin: env.CLIENT_URL,
+  origin: (origin, callback) => {
+    if (!origin || origin === env.CLIENT_URL || isAllowedDevOrigin(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Origine CORS non autorisee'));
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '1mb' }));
@@ -56,6 +66,7 @@ app.use('/api/coach', require('./routes/coachRoutes'));
 app.use('/api/missions', require('./routes/missionRoutes'));
 app.use('/api/foods', require('./routes/foodRoutes'));
 app.use('/api/food-entries', require('./routes/foodEntryRoutes'));
+app.use('/api/recipes', require('./routes/recipeRoutes'));
 app.use('/api/hydration', require('./routes/hydrationRoutes'));
 app.use('/api/exercises', require('./routes/exerciseRoutes'));
 app.use('/api/workouts', require('./routes/workoutRoutes'));

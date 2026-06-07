@@ -30,6 +30,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   margin-bottom: 8px;
   animation: nutriFadeDown 500ms cubic-bezier(.22,.68,0,1.1) both;
 }
@@ -56,21 +57,32 @@
   color: #fff;
 }
 
+.nutri-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .nutri-btn-add {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 10px 16px;
+  min-height: 42px;
+  padding: 0 14px;
   color: #060a10;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 900;
   letter-spacing: 0.02em;
   background: linear-gradient(135deg, #22d3ee, #10b981);
   border: none;
-  border-radius: 14px;
+  border-radius: 12px;
   box-shadow: 0 8px 24px rgba(34, 211, 238, 0.25);
   cursor: pointer;
   transition: transform 180ms ease, box-shadow 180ms ease;
+  white-space: nowrap;
 }
 
 .nutri-btn-add:hover {
@@ -80,6 +92,22 @@
 
 .nutri-btn-add:active {
   transform: scale(0.96);
+}
+
+.nutri-btn-recipes {
+  flex: 0 0 auto;
+  color: rgba(255,255,255,0.86);
+  background: rgba(255,255,255,0.055);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: none;
+}
+
+.nutri-btn-scan {
+  color: #fff;
+  background:
+    linear-gradient(135deg, rgba(245,158,11,0.9), rgba(34,211,238,0.9)),
+    #111827;
+  box-shadow: 0 10px 28px rgba(245, 158, 11, 0.18);
 }
 
 /* --- Hero Summary Card --- */
@@ -518,6 +546,38 @@
   gap: 16px;
 }
 
+.nutri-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+}
+
+.nutri-tab {
+  min-height: 40px;
+  padding: 0 8px;
+  color: rgba(255,255,255,0.58);
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  font-size: 0.74rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.nutri-tab.active {
+  color: #061016;
+  background: linear-gradient(135deg, #22d3ee, #10b981);
+}
+
+.nutri-tab:active {
+  transform: scale(0.96);
+}
+
 .nutri-search-box {
   position: relative;
   display: flex;
@@ -637,6 +697,20 @@
   border-radius: 20px;
 }
 
+.nutri-food-card.with-image {
+  align-items: stretch;
+  background: rgba(255,255,255,0.035);
+  border-color: rgba(255,255,255,0.08);
+}
+
+.nutri-food-image {
+  width: 76px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.06);
+}
+
 .nutri-food-card-icon {
   color: #22d3ee;
 }
@@ -646,6 +720,14 @@
   font-size: 1.1rem;
   font-weight: 950;
   color: #fff;
+}
+
+.nutri-food-card-content span {
+  display: block;
+  margin-top: 3px;
+  color: rgba(255,255,255,0.46);
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .nutri-food-card-content p {
@@ -682,6 +764,44 @@
   opacity: 0.6;
   cursor: not-allowed;
   filter: grayscale(0.5);
+}
+
+.nutri-product-macros {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.nutri-product-macros span,
+.nutri-empty-tab {
+  padding: 12px;
+  color: rgba(255,255,255,0.76);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.nutri-quantity-presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.nutri-quantity-presets button {
+  min-height: 44px;
+  color: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.nutri-quantity-presets button.active {
+  color: #061016;
+  background: linear-gradient(135deg, #22d3ee, #10b981);
 }
 
 /* --- Assisted Food Creation --- */
@@ -814,6 +934,37 @@
   .nutri-meal-add { width: 38px; height: 38px; }
   .nutri-timeline { padding-left: 8px; }
   .nutri-timeline-node { padding-left: 20px; }
+}
+
+@media (max-width: 620px) {
+  .nutri-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .nutri-header-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .nutri-btn-add {
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    padding-inline: 10px;
+    font-size: 0.82rem;
+  }
+
+  .nutri-btn-recipes {
+    grid-column: 1 / -1;
+  }
+
+  .nutri-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
 }
 
 @media (min-width: 900px) {

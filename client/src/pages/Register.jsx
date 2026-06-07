@@ -26,8 +26,8 @@ export const Register = () => {
     setError('');
     setLoading(true);
     try {
-      await register(email, password);
-      navigate(EMAIL_VERIFICATION_ENABLED ? '/verify-email' : '/dashboard', {
+      const data = await register(email, password);
+      navigate(EMAIL_VERIFICATION_ENABLED ? '/verify-email' : (data.user?.profile ? '/dashboard' : '/profile/setup'), {
         state: EMAIL_VERIFICATION_ENABLED ? { email } : undefined,
       });
     } catch (err) {

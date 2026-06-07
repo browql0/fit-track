@@ -1,14 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CheckCircle2, ChevronRight, Dumbbell, Flame, Salad, Scale, Target, Zap, TrendingUp, Sparkles, Award } from 'lucide-react';
+import { Barcode, CheckCircle2, ChevronRight, Dumbbell, Flame, Salad, Scale, Target, Zap, TrendingUp, Sparkles, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { dashboardService } from '../services/dashboardService';
 import { missionService } from '../services/missionService';
+import { recipeService } from '../services/recipeService';
 import { queryKeys } from '../services/queryClient';
 import { getGreeting } from '../utils/formatters';
+import { useScanner } from '../context/scannerContext';
 import './Dashboard.css';
 
 const fallback = { targetCalories: 2200, targetProtein: 145, targetCarbs: 240, targetFat: 72 };
@@ -17,10 +19,16 @@ const pct = (v, m) => (m ? Math.min(100, Math.round((Number(v || 0) / m) * 100))
 export const Dashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { openScanner } = useScanner();
   const [completingMission, setCompletingMission] = useState('');
   const dashboardQuery = useQuery({
     queryKey: queryKeys.dashboard,
     queryFn: dashboardService.getDashboard,
+  });
+  const recipeSuggestionQuery = useQuery({
+    queryKey: [...queryKeys.recipes, 'coach-suggestion'],
+    queryFn: recipeService.getCoachSuggestion,
+    staleTime: 2 * 60 * 1000,
   });
 
   const dashboard = dashboardQuery.data;
@@ -58,6 +66,12 @@ export const Dashboard = () => {
     onSettled: () => setCompletingMission(''),
   });
 
+  useEffect(() => {
+    if (dashboardQuery.error?.response?.status === 404) {
+      navigate('/profile/setup', { replace: true });
+    }
+  }, [dashboardQuery.error, navigate]);
+
   const chartData = useMemo(() => {
     const pts = [...s.weights].reverse();
     if (pts.length) return pts.map(e => ({ day: new Date(e.entryDate).toLocaleDateString('fr-FR', { weekday: 'short' }), weight: Number(e.weightKg) }));
@@ -65,7 +79,6 @@ export const Dashboard = () => {
   }, [s.weights]);
 
   if (dashboardQuery.error?.response?.status === 404) {
-    navigate('/profile/setup');
     return null;
   }
 
@@ -93,6 +106,7 @@ export const Dashboard = () => {
   const doneCount = missions.filter(m => m.done).length;
   const prediction = coach?.premium?.dashboardWidget?.mainPrediction || coach?.predictions?.[0];
   const advice = coach?.premium?.dashboardWidget?.mainAdvice || coach?.insights?.[0];
+  const recipeSuggestion = recipeSuggestionQuery.data;
 
   const ringData = [
     { label: 'Protéines', val: summary.protein || 0, max: targets.targetProtein || 145, p: protPct, color: '#22d3ee', unit: 'g' },
@@ -217,6 +231,19 @@ export const Dashboard = () => {
       </motion.section>
 
       {/* ══════ FUEL RINGS (macros) ══════ */}
+      <section className="ft-quick-actions" aria-label="Actions rapides">
+        <button type="button" className="ft-quick-action scan" onClick={() => openScanner()}>
+          <span><Barcode size={18} /></span>
+          <strong>Scanner un produit</strong>
+          <ChevronRight size={16} />
+        </button>
+        <button type="button" className="ft-quick-action" onClick={() => navigate('/nutrition')}>
+          <span><Salad size={18} /></span>
+          <strong>Ajouter un aliment</strong>
+          <ChevronRight size={16} />
+        </button>
+      </section>
+
       <section className="ft-fuel">
         <div className="ft-fuel__header">
           <h2 className="ft-fuel__title">Carburant</h2>
@@ -274,6 +301,23 @@ export const Dashboard = () => {
             );
           })}
         </section>
+      )}
+
+      {recipeSuggestion && (
+        <motion.section
+          className="ft-recipe-suggestion"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+        >
+          <div>
+            <span><Sparkles size={13} /> Suggestion du coach</span>
+            <p>{recipeSuggestion.message}</p>
+          </div>
+          <button type="button" onClick={() => navigate('/recipes')}>
+            Recettes <ChevronRight size={15} />
+          </button>
+        </motion.section>
       )}
 
       {/* ══════ MISSIONS ══════ */}

@@ -15,6 +15,11 @@ export const foodService = {
     const response = await api.get(`/foods/${id}`);
     return response.data;
   },
+
+  getFoodByBarcode: async (barcode) => {
+    const response = await api.get(`/foods/barcode/${encodeURIComponent(barcode)}`);
+    return response.data;
+  },
   
   createCustomFood: async (data) => {
     const response = await api.post('/foods', data);
