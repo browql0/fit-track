@@ -11,7 +11,7 @@ const getCookie = (name) => {
 const unsafeMethods = new Set(['post', 'put', 'patch', 'delete']);
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -20,8 +20,6 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    localStorage.removeItem('token');
-
     if (unsafeMethods.has(String(config.method).toLowerCase())) {
       const csrfToken = getCookie('csrfToken');
       if (csrfToken) {
@@ -31,18 +29,13 @@ api.interceptors.request.use(
 
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Interceptor to handle global responses/errors (e.g., auto logout on 401)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
-      // A small hack to redirect outside of React Router context
       if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
         window.location.href = '/login';
       }
